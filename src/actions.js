@@ -3,7 +3,7 @@ const logger = require('./loggers/log4js');
 
 const rabbit = require('zero-rabbit');
 
-const actionsBatch = require('./core/actions.controller');
+const actionsController = require('./core/actions.controller');
 
 const { mongo_uri } = require('./config/init.config');
 const { rabbit_config } = require('./config/rabbit.config')
@@ -23,6 +23,7 @@ mongoose.connect(mongo_uri, { useNewUrlParser: true }, (err, db) => {
         let actionsMessage = JSON.stringify(actionsMsg.content);
         logger.debug('Actions Message: ' + actionsMessage);        
         rabbit.ack('actions.1', actionsMsg);
+        actionsController(actionsMsg.content);
         // QUESTION: new? or created new class for this? or something else?
       }, { noAck: false }); 
     });
