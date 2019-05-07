@@ -1,0 +1,39 @@
+{
+  "name": "zero-inbox-batch-service",
+  "version": "1.3.0",
+  "description": "Backend for zero inbox. The batching service",
+  "main": "/src/index.js",
+  "directories": {
+    "src": "src"
+  },
+  "scripts": {
+    "test": "./node_modules/mocha/bin/_mocha ./src/**/*.spec.js --exit",
+    "unit": "./node_modules/mocha/bin/_mocha ./src/**/unit/*.spec.js --exit",
+    "integration": "./node_modules/mocha/bin/_mocha ./src/**/integration/*.spec.js --exit",
+    "start": "nodemon /usr/src/app/src/batch.js",
+    "start:dev": "cd ./src && nodemon --inspect-brk=0.0.0.0 batch.js",
+    "dev": "cd ./src && node batch.js"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "amqplib": "^0.5.3",
+    "batchelor": "^2.0.2",
+    "dotenv": "^6.2.0",
+    "log4js": "^4.0.2",
+    "mongoose": "^5.4.19",
+    "nodemon": "^1.18.10",
+    "request": "^2.88.0",
+    "zero-rabbit": "^1.0.12"
+  },
+  "devDependencies": {
+    "chai": "^4.2.0",
+    "eslint": "^4.12.0",
+    "eslint-plugin-promise": "^3.6.0",
+    "mocha": "^5.2.0",
+    "sinon": "^7.2.7",
+    "supertest": "^3.4.2",
+    "testdouble": "^3.11.0"
+  },
+  "private": true
+}
