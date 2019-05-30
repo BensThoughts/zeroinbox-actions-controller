@@ -64,7 +64,7 @@ function chunkThreadIds(array, result) {
  * @return {Promise}                    The actual batch request to be executed
  */
 
-function createBatchRequest(threadIdsChunk, access_token) {
+function createBatchTrashRequest(threadIdsChunk, access_token) {
     var batch = new Batchelor({
       'uri': GMAIL_BATCH_ENDPOINT,
       'method': 'POST',
@@ -74,12 +74,15 @@ function createBatchRequest(threadIdsChunk, access_token) {
       }
     });
   
-    let query = '?format=metadata ';
-  
+
     threadIdsChunk.forEach((threadId) => {
       batch.add({
-        'method': 'GET',
-        'path': '/gmail/v1/users/me/threads/' + threadId + query,
+        'method': 'POST',
+        'path': '/gmail/v1/users/me/threads/' + threadId + '/trash',
+        'parameters': {
+          'Content-Type':'application/json',
+          'body': {'object':{}}
+        }
       });
     });
   
@@ -100,5 +103,5 @@ function createBatchRequest(threadIdsChunk, access_token) {
 module.exports = {
     asyncForEach,
     chunkThreadIds,
-    createBatchRequest
+    createBatchTrashRequest
 };

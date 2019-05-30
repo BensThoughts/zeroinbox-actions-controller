@@ -20,9 +20,9 @@
     "amqplib": "^0.5.3",
     "batchelor": "^2.0.2",
     "dotenv": "^6.2.0",
-    "log4js": "^4.0.2",
-    "mongoose": "^5.4.19",
-    "nodemon": "^1.18.10",
+    "log4js": "^4.3.1",
+    "mongoose": "^5.5.11",
+    "nodemon": "^1.19.1",
     "request": "^2.88.0",
     "zero-rabbit": "^1.0.12"
   },
@@ -31,7 +31,7 @@
     "eslint": "^4.12.0",
     "eslint-plugin-promise": "^3.6.0",
     "mocha": "^5.2.0",
-    "sinon": "^7.2.7",
+    "sinon": "^7.3.2",
     "supertest": "^3.4.2",
     "testdouble": "^3.11.0"
   },
