@@ -17,13 +17,12 @@ mongoose.connect(mongo_uri, { useNewUrlParser: true }, (err, db) => {
     rabbit.connect(rabbit_config, (err, conn) => {
       logger.info('Connected to RabbitMQ!');
 
-      rabbit.setChannelPrefetch('batch.listen.1', 1);
+      rabbit.setChannelPrefetch('actions.1', 1);
       rabbit.consume('actions.1', 'batch.actions.q.1', (actionsMsg) => {
         // next 2 lines for debugging
         let actionsMessage = JSON.stringify(actionsMsg.content);
         logger.debug('Actions Message: ' + actionsMessage);        
-        rabbit.ack('actions.1', actionsMsg);
-        actionsController(actionsMsg.content);
+        actionsController(actionsMsg);
         // QUESTION: new? or created new class for this? or something else?
       }, { noAck: false }); 
     });

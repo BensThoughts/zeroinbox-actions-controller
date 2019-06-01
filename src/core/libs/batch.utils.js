@@ -7,6 +7,7 @@ const {
   } = require('../../config/init.config');
 
 const BATCH_SIZE = 50;
+
 /**
  * An implementation of asyncForEach much like concatMap from rxjs.
  *
@@ -100,9 +101,47 @@ function createBatchTrashRequest(threadIdsChunk, access_token) {
     });
   }
 
+  function createBatchLabelRequest(threadIdsChunk, access_token, labelId) {
+    var batch = new Batchelor({
+      'uri': GMAIL_BATCH_ENDPOINT,
+      'method': 'POST',
+      'headers': {
+        'Content-Type': 'multipart/mixed',
+        'Authorization': 'Bearer ' + access_token
+      }
+    });
+  
+    threadIdsChunk.forEach((threadId) => {
+      batch.add({
+        'method': 'POST',
+        'path': '/gmail/v1/users/me/threads/' + threadId + '/modify',
+        'parameters': {
+          'Content-Type':'application/json',
+          'body': {
+            "addLabelIds": [labelId],
+            "removeLabelIds": ['INBOX']
+          }
+        }
+      });
+    });
+  
+    return new Promise((resolve, reject) => {
+      batch.run((err, response) => {
+        if (err) {
+          logger.error("Error: " + err);
+          reject(err);
+        } else {
+          //results = results.concat([response]);
+          resolve(response);
+        }
+      });
+    });
+  }
+
 
 module.exports = {
     asyncForEach,
     chunkThreadIds,
-    createBatchTrashRequest
+    createBatchTrashRequest,
+    createBatchLabelRequest
 };
