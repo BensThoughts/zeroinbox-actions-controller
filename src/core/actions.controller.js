@@ -1,7 +1,9 @@
 
 const logger = require('../loggers/log4js');
 const {
-    findThreadIds
+    findThreadIds,
+    deleteSender,
+    deleteThreadIds,
 } = require('./libs/mongoose.utils')
 
 const {
@@ -18,22 +20,29 @@ const {
 function actionsController(actionsMsg) {
 
     switch(actionsMsg.actionType) {
+
         case 'delete':
             deleteSenders(actionsMsg);
             return;
+
+        case 'label':
+            logger.trace('RABBIT LABEL MESSAGE');
+            logger.trace(actionsMsg)
+            return;
+
         default:
             logger.error('Action was not one of delete, label, or unsubscribe')
     }
  
 }
 
-function deleteSenders(actionsMsg) {
+async function deleteSenders(actionsMsg) {
     let userId = actionsMsg.userId;
     let access_token = actionsMsg.access_token;
     let senderIds = actionsMsg.senderIds;
-    senderIds.forEach((senderId) => {
-        findThreadIds(userId, senderId, (err, res) => {
-            logger.trace(res);
+    
+    await asyncForEach(senderIds, async (senderId) => {
+        await findThreadIds(userId, senderId, async (err, res) => {
             const startBatchProcess= async () => {
                 let threadIdChunks = chunkThreadIds(res, []);
                 await asyncForEach(threadIdChunks, async (threadIdChunk) => {
@@ -41,14 +50,23 @@ function deleteSenders(actionsMsg) {
                         logger.error(err);
                     });
                     logger.trace(batchResult);
+                    deleteSender(userId, senderId, (err, res) => {
+                        if (err) {
+                            return logger.error(err);
+                        }
+                        logger.trace(res);
+                    });
                 })
             }
 
-            startBatchProcess().catch(error => {
+            await startBatchProcess().catch(error => {
                 logger.error(error);
             })
         })
     })
+    // senderIds.forEach((senderId) => {
+    
+    //})
 }
 
 module.exports = actionsController;

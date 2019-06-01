@@ -3,9 +3,10 @@ const logger = require('../../loggers/log4js');
 
 const {
     GMAIL_BATCH_ENDPOINT,
-    BATCH_SIZE
+    // BATCH_SIZE
   } = require('../../config/init.config');
 
+const BATCH_SIZE = 50;
 /**
  * An implementation of asyncForEach much like concatMap from rxjs.
  *
