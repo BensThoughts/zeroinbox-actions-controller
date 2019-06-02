@@ -25,7 +25,7 @@ function actionsController(actionsMsg) {
     switch(actionType) {
 
         case 'delete':
-            deleteSenders(actionsMsg);
+            trashSender(actionsMsg);
             return;
 
         case 'label':
@@ -47,7 +47,7 @@ function labelSender(actionsMsg) {
 
     let userId = actionsObj.userId;
     let access_token = actionsObj.access_token;
-    let senderId = actionsObj.senderIds[0];
+    let senderId = actionsObj.senderId;
     let category = actionsObj.category;
     let labelName = actionsObj.labelName;
 
@@ -110,13 +110,14 @@ function labelSender(actionsMsg) {
 
 }
 
-async function deleteSenders(actionsMsg) {
-    let userId = actionsMsg.userId;
-    let access_token = actionsMsg.access_token;
-    let senderIds = actionsMsg.senderIds;
-    
-    await asyncForEach(senderIds, async (senderId) => {
-        await findThreadIds(userId, senderId, async (err, res) => {
+function trashSender(actionsMsg) {
+    let actionsObj = actionsMsg.content;
+
+    let userId = actionsObj.userId;
+    let access_token = actionsObj.access_token;
+    let senderId = actionsObj.senderId;
+
+    findThreadIds(userId, senderId, (err, res) => {
             const startBatchProcess = async () => {
                 let threadIdChunks = chunkThreadIds(res, []);
                 await asyncForEach(threadIdChunks, async (threadIdChunk) => {
@@ -126,6 +127,7 @@ async function deleteSenders(actionsMsg) {
                     logger.trace(batchResult);
                 })
 
+                rabbit.ack('actions.1', actionsMsg);
 
                 deleteSender(userId, senderId, (err, res) => {
                     if (err) {
@@ -135,14 +137,10 @@ async function deleteSenders(actionsMsg) {
                 });
             }
 
-            await startBatchProcess().catch(error => {
+            startBatchProcess().catch(error => {
                 logger.error(error);
             })
         })
-    })
-
-    rabbit.ack('actions.1', actionsMsg);
-
 }
 
 module.exports = actionsController;
