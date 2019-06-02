@@ -13,6 +13,10 @@ const {
     asyncForEach
 } = require('./libs/batch.utils');
 
+const {
+    GMAIL_LABEL_ENDPOINT
+} = require('../config/init.config');
+
 const request = require('request');
 
 const rabbit = require('zero-rabbit');
@@ -54,9 +58,11 @@ function labelSender(actionsMsg) {
     let label = labelName;
 
     findThreadIds(userId, senderId, (err, res) => {
+
+        let threadIds = res;
         
         const options = {
-            url: 'https://www.googleapis.com/gmail/v1/users/me/labels',
+            url: GMAIL_LABEL_ENDPOINT,
             headers: {
               'Authorization': 'Bearer ' + access_token
             },
@@ -78,7 +84,7 @@ function labelSender(actionsMsg) {
             let labelId = body.id;
 
             const startBatchProcess = async () => {
-                let threadIdChunks = chunkThreadIds(res, []);
+                let threadIdChunks = chunkThreadIds(threadIds, []);
     
                 await asyncForEach(threadIdChunks, async (threadIdChunk) => {
                     let batchResult = await createBatchLabelRequest(threadIdChunk, access_token, labelId).catch((err) => {
@@ -91,6 +97,13 @@ function labelSender(actionsMsg) {
                 rabbit.ack('actions.1', actionsMsg);
 
                 deleteSender(userId, senderId, (err, res) => {
+                    if (err) {
+                        return logger.error(err);
+                    }
+                    // logger.trace(res);
+                });
+
+                deleteThreadIds(userId, threadIds, (err, res) => {
                     if (err) {
                         return logger.error(err);
                     }
@@ -118,8 +131,10 @@ function trashSender(actionsMsg) {
     let senderId = actionsObj.senderId;
 
     findThreadIds(userId, senderId, (err, res) => {
+            let threadIds = res;
+
             const startBatchProcess = async () => {
-                let threadIdChunks = chunkThreadIds(res, []);
+                let threadIdChunks = chunkThreadIds(threadIds, []);
                 await asyncForEach(threadIdChunks, async (threadIdChunk) => {
                     let batchResult = await createBatchTrashRequest(threadIdChunk, access_token).catch((err) => {
                         logger.error(err);
@@ -130,6 +145,13 @@ function trashSender(actionsMsg) {
                 rabbit.ack('actions.1', actionsMsg);
 
                 deleteSender(userId, senderId, (err, res) => {
+                    if (err) {
+                        return logger.error(err);
+                    }
+                    logger.trace(res);
+                });
+
+                deleteThreadIds(userId, threadIds, (err, res) => {
                     if (err) {
                         return logger.error(err);
                     }

@@ -28,7 +28,7 @@ exports.deleteThreadIds = function deleteThreadIds(userId, threadIds, callback) 
     let conditions = {
         userId: userId,
         threadId: {
-            $in: threadIds
+            "$in": threadIds
         }
     };
     

@@ -3,10 +3,8 @@ const logger = require('../../loggers/log4js');
 
 const {
     GMAIL_BATCH_ENDPOINT,
-    // BATCH_SIZE
+    ACTIONS_BATCH_SIZE
   } = require('../../config/init.config');
-
-const BATCH_SIZE = 50;
 
 /**
  * An implementation of asyncForEach much like concatMap from rxjs.
@@ -38,13 +36,13 @@ async function asyncForEach(array, callback) {
 
 function chunkThreadIds(array, result) {
 
-    if (array.length <= BATCH_SIZE) {
+    if (array.length <= ACTIONS_BATCH_SIZE) {
       result = result.concat([array]);
       return result;
     }
   
-    result = result.concat([array.slice(0, BATCH_SIZE)]);
-    array = array.slice(BATCH_SIZE);
+    result = result.concat([array.slice(0, ACTIONS_BATCH_SIZE)]);
+    array = array.slice(ACTIONS_BATCH_SIZE);
   
     return chunkThreadIds(array, result);
   
