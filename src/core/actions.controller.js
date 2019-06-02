@@ -14,10 +14,10 @@ const {
 } = require('./libs/batch.utils');
 
 const {
-    GMAIL_LABEL_ENDPOINT
-} = require('../config/init.config');
+    httpPostLabelRequest,
+    httpGetLabelsRequest
+} = require('./libs/label.utils');
 
-const request = require('request');
 
 const rabbit = require('zero-rabbit');
 
@@ -42,10 +42,6 @@ function actionsController(actionsMsg) {
  
 }
 
-function createLabel(userId, access_token, labelName) {
-
-}
-
 function labelSender(actionsMsg) {
     let actionsObj = actionsMsg.content;
 
@@ -55,33 +51,35 @@ function labelSender(actionsMsg) {
     let category = actionsObj.category;
     let labelName = actionsObj.labelName;
 
-    let label = labelName;
 
-    findThreadIds(userId, senderId, (err, res) => {
+    findThreadIds(userId, senderId, (err, threadIds) => {
 
-        let threadIds = res;
-        
-        const options = {
-            url: GMAIL_LABEL_ENDPOINT,
-            headers: {
-              'Authorization': 'Bearer ' + access_token
-            },
-            body: {
-                labelListVisibility: 'labelShow',
-                messageListVisibility: 'show',
-                name: label
-            },
-            json: true
-          };
+        httpGetLabelsRequest(access_token).then( async (response) => {
+          let labelId;
 
-        request.post(options, async (err, response, body) => {
-            if (err) {
-                logger.error(err);
-            }
-            // logger.trace(response);
-            logger.trace(body);
+          logger.trace(response);
+          let labelNames = response.labels.map(label => label.name);
 
-            let labelId = body.id;
+          let categoryExists = labelNames.includes(category);
+
+          if (category != 'NO_CATEGORY') {
+              labelName = category + '/' + labelName;
+              if (!categoryExists) {
+                  await httpPostLabelRequest(access_token, category).catch((err) => logger.error(err));
+              }
+          }
+
+          let labelNameExists = labelNames.includes(labelName);
+
+          if (!labelNameExists) {
+            await httpPostLabelRequest(access_token, labelName).then((response) => {
+              labelId = response.id;
+            }).catch((err) => logger.error(err));
+          } else {
+            labelId = response.labels.find((element, index, array) => {
+              return element.name === labelName;
+            }).id;
+          }    
 
             const startBatchProcess = async () => {
                 let threadIdChunks = chunkThreadIds(threadIds, []);
@@ -91,7 +89,6 @@ function labelSender(actionsMsg) {
                         logger.error(err);
                     });
                     logger.trace(batchResult);
-                    // logger.trace(batchResult.parts[0].body.error.errors);
                 });
 
                 rabbit.ack('actions.1', actionsMsg);
@@ -100,7 +97,6 @@ function labelSender(actionsMsg) {
                     if (err) {
                         return logger.error(err);
                     }
-                    // logger.trace(res);
                 });
 
                 deleteThreadIds(userId, threadIds, (err, res) => {
@@ -114,13 +110,10 @@ function labelSender(actionsMsg) {
             startBatchProcess().catch((err) => {
                 logger.error(err);
             })
+    
 
-
-
-        })
-
+        }).catch((err) => logger.error(err));
     })
-
 }
 
 function trashSender(actionsMsg) {
@@ -166,6 +159,3 @@ function trashSender(actionsMsg) {
 }
 
 module.exports = actionsController;
-
-
-
