@@ -57,7 +57,6 @@ function labelSender(actionsMsg) {
         httpGetLabelsRequest(access_token).then( async (response) => {
           let labelId;
 
-          logger.trace(response);
           let labelNames = response.labels.map(label => label.name);
 
           let categoryExists = labelNames.includes(category);
