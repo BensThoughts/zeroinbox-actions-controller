@@ -8,8 +8,25 @@ exports.findThreadIds = function findThreadIds(userId, senderId, callback) {
         senderId: senderId
     }
 
-    Sender.find().distinct('threadIds_internalDates.threadId', conditions, (err, res) => {
-        callback(err, res);
+    Sender.find().distinct('threadIds_internalDates.threadId', conditions, (senderError, res) => {
+        if (senderError) {
+            return callback(senderError, null);
+        }
+        let threadIds = res;
+        let threadIdConditions = {
+            userId: userId,
+            threadId: {
+                "$in": threadIds
+            }
+        }
+        let projection = {
+            'threadId': 1,
+            _id: 0
+        }
+        ThreadId.find(threadIdConditions, projection, (err, threadIdsStillInInbox) => {
+            threadIdsStillInInbox = threadIdsStillInInbox.map(threadIdsStillInInbox => threadIdsStillInInbox.threadId);
+            callback(err, res);
+        });
     })
 }
 
