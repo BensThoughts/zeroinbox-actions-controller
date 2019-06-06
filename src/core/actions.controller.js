@@ -122,8 +122,7 @@ function trashSender(actionsMsg) {
     let access_token = actionsObj.access_token;
     let senderId = actionsObj.senderId;
 
-    findThreadIds(userId, senderId, (err, res) => {
-            let threadIds = res;
+    findThreadIds(userId, senderId, (err, threadIds) => {
 
             const startBatchProcess = async () => {
                 let threadIdChunks = chunkThreadIds(threadIds, []);

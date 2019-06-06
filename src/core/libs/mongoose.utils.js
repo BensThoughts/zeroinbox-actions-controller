@@ -8,26 +8,40 @@ exports.findThreadIds = function findThreadIds(userId, senderId, callback) {
         senderId: senderId
     }
 
-    Sender.find().distinct('threadIds_internalDates.threadId', conditions, (senderError, res) => {
-        if (senderError) {
-            return callback(senderError, null);
+    let projection = {
+        threadIds: 1,
+        _id: 0
+    }
+
+    Sender.findOne(conditions, projection, (err, res) => {
+        if (err) {
+            logger.error(err);
+            return callback(err, res);
         }
-        let threadIds = res;
-        let threadIdConditions = {
-            userId: userId,
-            threadId: {
-                "$in": threadIds
-            }
-        }
-        let projection = {
-            'threadId': 1,
-            _id: 0
-        }
-        ThreadId.find(threadIdConditions, projection, (err, threadIdsStillInInbox) => {
-            threadIdsStillInInbox = threadIdsStillInInbox.map(threadIdsStillInInbox => threadIdsStillInInbox.threadId);
-            callback(err, res);
-        });
-    })
+        let threadIds = res.threadIds;
+        callback(err, threadIds);
+    });
+
+    // Sender.find().distinct('threadIds', conditions, (senderError, res) => {
+        // if (senderError) {
+        //    return callback(senderError, null);
+        // }
+        // let threadIds = res;
+        // let threadIdConditions = {
+        //    userId: userId,
+        //    threadId: {
+        //        "$in": threadIds
+        //    }
+        // }
+        // let projection = {
+        //    'threadId': 1,
+        //    _id: 0
+        // }
+        // ThreadId.find(threadIdConditions, projection, (err, threadIdsStillInInbox) => {
+        //    threadIdsStillInInbox = threadIdsStillInInbox.map(threadIdsStillInInbox => threadIdsStillInInbox.threadId);
+        //    callback(err, res);
+        // });
+    // })
 }
 
 exports.deleteSender = function deleteSender(userId, senderId, callback) {
