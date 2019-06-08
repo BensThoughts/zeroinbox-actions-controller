@@ -18,8 +18,12 @@ exports.findThreadIds = function findThreadIds(userId, senderId, callback) {
             logger.error(err);
             return callback(err, res);
         }
-        let threadIds = res.threadIds;
-        callback(err, threadIds);
+        if (res !== null) {
+            let threadIds = res.threadIds;
+            callback(err, threadIds);
+        } else {
+            callback(null, []);
+        }
     });
 
     // Sender.find().distinct('threadIds', conditions, (senderError, res) => {
