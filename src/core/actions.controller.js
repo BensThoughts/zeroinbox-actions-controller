@@ -107,11 +107,15 @@ function labelSender(actionsMsg) {
             }
     
             startBatchProcess().catch((err) => {
+                rabbit.nack('actions.1', actionsMsg);
                 logger.error(err);
             })
     
 
-        }).catch((err) => logger.error(err));
+        }).catch((err) => {
+            rabbit.nack('actions.1', actionsMsg);
+            logger.error(err)
+        });
     })
 }
 
@@ -151,6 +155,7 @@ function trashSender(actionsMsg) {
             }
 
             startBatchProcess().catch(error => {
+                rabbit.nack('actions.1', actionsMsg);
                 logger.error(error);
             })
         })
