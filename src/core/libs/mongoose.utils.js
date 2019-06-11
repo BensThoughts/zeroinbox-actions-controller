@@ -50,3 +50,18 @@ exports.deleteThreadIds = function deleteThreadIds(userId, threadIds, callback) 
         callback(err, res);
     })
 }
+
+exports.unsubscribeSenderFromMongo = function unsubscribeSender(userId, senderId, callback) {
+  let conditions = {
+    userId: userId,
+    senderId: senderId
+  }
+
+  let update = {
+    unsubscribed: true
+  }
+
+  Sender.updateOne(conditions, update, (err, res) => {
+    callback(err, res);
+  })
+}
