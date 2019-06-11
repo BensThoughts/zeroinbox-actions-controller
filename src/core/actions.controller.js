@@ -36,6 +36,10 @@ function actionsController(actionsMsg) {
             labelSender(actionsMsg);
             return;
 
+        case 'unsubscribe':
+            unsubscribeSender(actionsMsg);
+            return;
+
         default:
             logger.error('Action was not one of delete, label, or unsubscribe')
     }
@@ -160,5 +164,95 @@ function trashSender(actionsMsg) {
             })
         })
 }
+
+const { google } = require ('googleapis');
+const Base64 = require('js-base64').Base64;
+const request = require('request');
+
+function unsubscribeSender(actionsMsg) {
+  let actionsObj = actionsMsg.content;
+  let userId = actionsObj.userId;
+  let access_token = actionsObj.access_token;
+  let senderId = actionsObj.senderId;
+  let unsubscribeEmail = actionsObj.unsubscribeEmail;
+
+  function makeBody(to, subject, message) {
+    let str = ["to: ", to, "\n",
+              // "from: ", from, "\n",
+              "subject: ", subject, "\n\n",
+              // message,
+            ].join('');
+    return str;
+  }
+
+  let metadata = {
+    to: '',
+    subject: ''
+  }
+
+  metadata = cleanSender(unsubscribeEmail);
+  // checkForSubject(unsubscribeEmail);
+
+  let raw = makeBody(metadata.to, metadata.subject);
+  let option = {
+    url: "https://www.googleapis.com/upload/gmail/v1/users/me/messages/send",
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${access_token}`,
+      'Content-Type': 'message/rfc822'
+    },
+    body: raw
+  }
+
+  request(option, (err, res, body) => {
+    if (err) {
+      logger.error(err);
+    } else {
+      logger.trace(body);
+    }
+    // logger.trace(res);
+  });
+
+  
+
+  rabbit.ack('actions.1', actionsMsg);
+}
+
+function cleanSender(unsubscribeEmail) {
+  let to = '';
+  let subject = '';
+
+  // clean off any mailto: (should usually be index 0 to 7)
+  let mailtoIndex = unsubscribeEmail.search('mailto:');
+  if (mailtoIndex != -1) {
+    unsubscribeEmail = unsubscribeEmail.slice(mailtoIndex + 7);
+  }
+
+  // find the .com and get the sender (should be 0 to the end of .com)
+  let toIndex = unsubscribeEmail.search(/\.com/i);
+  logger.trace(toIndex);
+  to = unsubscribeEmail.slice(0, toIndex + 4);
+
+  // find out if there is a subject query line (should be ?subject='' and should come right after .com)
+  let subjectIndex = unsubscribeEmail.search(/\?subject=/i);
+
+
+  if (subjectIndex != -1) {
+    subject = unsubscribeEmail.slice(subjectIndex + 9);
+    to = unsubscribeEmail.slice(0, subjectIndex);
+  } else {
+    to = unsubscribeEmail;
+  }
+
+  logger.trace('To: ' + to);
+  logger.trace('Subject: ' + subject);
+
+  return {
+    to: to,
+    subject: subject
+  }
+
+}
+
 
 module.exports = actionsController;

@@ -20,6 +20,8 @@
     "amqplib": "^0.5.3",
     "batchelor": "^2.0.2",
     "dotenv": "^6.2.0",
+    "googleapis": "^40.0.0",
+    "js-base64": "^2.5.1",
     "log4js": "^4.3.1",
     "mongoose": "^5.5.11",
     "nodemon": "^1.19.1",

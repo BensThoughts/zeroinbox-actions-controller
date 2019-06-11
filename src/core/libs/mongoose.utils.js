@@ -25,27 +25,6 @@ exports.findThreadIds = function findThreadIds(userId, senderId, callback) {
             callback(null, []);
         }
     });
-
-    // Sender.find().distinct('threadIds', conditions, (senderError, res) => {
-        // if (senderError) {
-        //    return callback(senderError, null);
-        // }
-        // let threadIds = res;
-        // let threadIdConditions = {
-        //    userId: userId,
-        //    threadId: {
-        //        "$in": threadIds
-        //    }
-        // }
-        // let projection = {
-        //    'threadId': 1,
-        //    _id: 0
-        // }
-        // ThreadId.find(threadIdConditions, projection, (err, threadIdsStillInInbox) => {
-        //    threadIdsStillInInbox = threadIdsStillInInbox.map(threadIdsStillInInbox => threadIdsStillInInbox.threadId);
-        //    callback(err, res);
-        // });
-    // })
 }
 
 exports.deleteSender = function deleteSender(userId, senderId, callback) {
