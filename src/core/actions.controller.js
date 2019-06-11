@@ -16,8 +16,9 @@ const {
 
 const {
     httpPostLabelRequest,
-    httpGetLabelsRequest
-} = require('./libs/label.utils');
+    httpGetLabelsRequest,
+    httpSendMessageRequest
+} = require('./libs/api.utils');
 
 
 const rabbit = require('zero-rabbit');
@@ -166,10 +167,6 @@ function trashSender(actionsMsg) {
         })
 }
 
-const { google } = require ('googleapis');
-const Base64 = require('js-base64').Base64;
-const request = require('request');
-
 function unsubscribeSender(actionsMsg) {
   let actionsObj = actionsMsg.content;
   let userId = actionsObj.userId;
@@ -179,51 +176,35 @@ function unsubscribeSender(actionsMsg) {
   let unsubscribeWeb = actionsObj.unsubscribeWeb;
 
   if (unsubscribeEmail) {
-    function makeBody(to, subject, message) {
-      let str = ["to: ", to, "\n",
-              // "from: ", from, "\n",
-              "subject: ", subject, "\n\n",
-              // message,
-            ].join('');
-      return str;
-    }
-
     let metadata = {
       to: '',
       subject: ''
     }
     metadata = cleanSender(unsubscribeEmail);
 
-    let raw = makeBody(metadata.to, metadata.subject);
-    let option = {
-      url: "https://www.googleapis.com/upload/gmail/v1/users/me/messages/send",
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${access_token}`,
-        'Content-Type': 'message/rfc822'
-      },
-      body: raw
-    }
+    httpSendMessageRequest(access_token, metadata.to, metadata.subject).then((response) => {
+      unsubscribeSenderFromMongo(userId, senderId, (err, response) => {
+        if (err) {
+          logger.error(err);
+        } else {
+          logger.trace('unsubscribeSenderFromMongo: ' + response);
+        }
+      });
 
-    request(option, (err, res, body) => {
+      rabbit.ack('actions.1', actionsMsg);
+
+    }).catch((error) => {
+      rabbit.nack('actions.1', actionsMsg);
+    });
+  } else {
+    unsubscribeSenderFromMongo(userId, senderId, (err, response) => {
       if (err) {
         logger.error(err);
       } else {
-        logger.trace(body);
+        logger.trace('unsubscribeSenderFromMongo: ' + response);
       }
     });
   }
-
-  unsubscribeSenderFromMongo(userId, senderId, (err, response) => {
-    if (err) {
-      logger.error(err);
-    } else {
-      logger.trace('unsubscribeSenderFromMongo: ' + response);
-    }
-  });
-
-  rabbit.ack('actions.1', actionsMsg);
-
 }
 
 function cleanSender(unsubscribeEmail) {

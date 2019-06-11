@@ -2,7 +2,8 @@ const {
     GAPI_DELAY_MULTIPLIER,
     GAPI_MAX_RETRIES,
     GAPI_INIT_RETRY_DELAY,
-    GMAIL_LABEL_ENDPOINT
+    GMAIL_LABEL_ENDPOINT,
+    GMAIL_MESSAGE_SEND_ENDPOINT
   } = require('../../config/init.config');
 
 const logger = require('../../loggers/log4js');
@@ -72,6 +73,53 @@ function httpPostLabelPromise(url, access_token, labelName) {
       })
     });
   }
+  
+  function httpSendEmailPromise(url, access_token, to, subject) {
+
+    function makeBody(to, subject, message) {
+      let str = ["to: ", to, "\n",
+              // "from: ", from, "\n",
+              "subject: ", subject, "\n\n",
+              // message,
+            ].join('');
+      return str;
+    }
+
+    let raw = makeBody(to, subject);
+
+    let options = {
+      url: url,
+      // method: 'POST',
+      headers: {
+        'Authorization': 'Bearer ' + access_token,
+        'Content-Type': 'message/rfc822'
+      },
+      body: raw
+    }
+
+    return new Promise((resolve, reject) => {
+      request.post(options, (error, res, body) => {
+        if (!error) {
+          resolve(body);
+        } else {
+          logger.error('Error contacting ' + url + ': ' + JSON.stringify(error));
+          reject(error);
+        }
+      })
+    });
+
+  }
+
+  exports.httpSendMessageRequest = function(access_token, to, subject) {
+    let url = GMAIL_MESSAGE_SEND_ENDPOINT;
+    let retries = GAPI_MAX_RETRIES;
+    let delay = GAPI_INIT_RETRY_DELAY;
+    let delayMultiplier = GAPI_DELAY_MULTIPLIER;
+    let promiseCreator = () => httpSendEmailPromise(url, access_token, to, subject);
+
+    return retryHttpRequest(promiseCreator, retries, delay, delayMultiplier);
+  }
+
 
   exports.httpPostLabelRequest = function(access_token, labelName) {
     let url = GMAIL_LABEL_ENDPOINT;
