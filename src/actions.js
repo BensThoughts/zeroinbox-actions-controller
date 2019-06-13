@@ -34,7 +34,7 @@ mongoose.connect(mongo_uri, { useNewUrlParser: true }, (err, db) => {
         let userIdMessage = userIdsMsg.content;
         let userId = userIdMessage.userId;
         logger.trace('New userId actions message, userId: ' + userId);
-        consumer(userId);
+        consumer(userIdMsg);
       }, { noAck: true });
 
       let server = googleApi.listen(actions_health_port, actions_health_host);
@@ -44,7 +44,8 @@ mongoose.connect(mongo_uri, { useNewUrlParser: true }, (err, db) => {
   }
 });
 
-function consumer(userId) {
+function consumer(userIdMsg) {
+  let userId = userIdMsg.content.userId;
   rabbit.assertQueue('actions.userId.' + userId, 'actions.userId.' + userId, { autoDelete: false, durable: true }, (assertQueueErr, q) => {
     if (assertQueueErr) {
       return logger.error(assertQueueErr);
@@ -57,7 +58,7 @@ function consumer(userId) {
           rabbit.consume('actions.userId.' + userId, 'actions.userId.' + userId, (actionsMsg) => {
             let actionsMessage = JSON.stringify(actionsMsg.content);
             logger.trace('Actions Message: ' + actionsMessage);
-            actionsController(actionsMsg);
+            actionsController(actionsMsg, userIdMsg);
           }, { noAck: false })
         }
       });

@@ -24,31 +24,32 @@ const {
 const rabbit = require('zero-rabbit');
 
 
-function actionsController(actionsMsg) {
+function actionsController(actionsMsg, userIdMsg) {
 
     let actionType = actionsMsg.content.actionType;
 
     switch(actionType) {
 
         case 'delete':
-            trashSender(actionsMsg);
+            trashSender(actionsMsg, userIdMsg);
             return;
 
         case 'label':
-            labelSender(actionsMsg);
+            labelSender(actionsMsg, userIdMsg);
             return;
 
         case 'unsubscribe':
-            unsubscribeSender(actionsMsg);
+            unsubscribeSender(actionsMsg, userIdMsg);
             return;
 
         default:
-            logger.error('Action was not one of delete, label, or unsubscribe')
+            logger.error('Action was not one of delete, label, or unsubscribe');
+            ackMessage(actionsMsg, userIdMsg);
     }
  
 }
 
-function labelSender(actionsMsg) {
+function labelSender(actionsMsg, userIdMsg) {
     let actionsObj = actionsMsg.content;
 
     let userId = actionsObj.userId;
@@ -86,88 +87,87 @@ function labelSender(actionsMsg) {
             }).id;
           }    
 
-            const startBatchProcess = async () => {
-                let threadIdChunks = chunkThreadIds(threadIds, []);
-    
-                await asyncForEach(threadIdChunks, async (threadIdChunk) => {
-                    let batchResult = await createBatchLabelRequest(threadIdChunk, access_token, labelId).catch((err) => {
-                        logger.error(err);
-                    });
-                    logger.trace(batchResult);
-                });
+          const startBatchProcess = async () => {
+              let threadIdChunks = chunkThreadIds(threadIds, []);
+  
+              await asyncForEach(threadIdChunks, async (threadIdChunk) => {
+                  let batchResult = await createBatchLabelRequest(threadIdChunk, access_token, labelId).catch((err) => {
+                      logger.error(err);
+                  });
+                  logger.trace(batchResult);
+              });
 
-                rabbit.ack('actions.1', actionsMsg);
+              ackMessage(actionsMsg, userIdMsg);
+              deleteSender(userId, senderId, (err, res) => {
+                  if (err) {
+                      return logger.error(err);
+                  }
+              });
 
-                deleteSender(userId, senderId, (err, res) => {
-                    if (err) {
-                        return logger.error(err);
-                    }
-                });
-
-                deleteThreadIds(userId, threadIds, (err, res) => {
-                    if (err) {
-                        return logger.error(err);
-                    }
-                    logger.trace(res);
-                });
-            }
-    
-            startBatchProcess().catch((err) => {
-                rabbit.nack('actions.1', actionsMsg);
-                logger.error(err);
-            })
+              deleteThreadIds(userId, threadIds, (err, res) => {
+                  if (err) {
+                      return logger.error(err);
+                  }
+                  logger.trace(res);
+              });
+          }
+  
+          startBatchProcess().catch((err) => {
+              nackMessage(actionsMsg);
+              logger.error(err);
+          })
     
 
         }).catch((err) => {
-            rabbit.nack('actions.1', actionsMsg);
+            nackMessage(actionsMsg);
             logger.error(err)
         });
     })
 }
 
-function trashSender(actionsMsg) {
-    let actionsObj = actionsMsg.content;
+function trashSender(actionsMsg, userIdMsg) {
+  let actionsObj = actionsMsg.content;
 
-    let userId = actionsObj.userId;
-    let access_token = actionsObj.access_token;
-    let senderId = actionsObj.senderId;
+  let userId = actionsObj.userId;
+  let access_token = actionsObj.access_token;
+  let senderId = actionsObj.senderId;
 
-    findThreadIds(userId, senderId, (err, threadIds) => {
+  findThreadIds(userId, senderId, (err, threadIds) => {
 
-            const startBatchProcess = async () => {
-                let threadIdChunks = chunkThreadIds(threadIds, []);
-                await asyncForEach(threadIdChunks, async (threadIdChunk) => {
-                    let batchResult = await createBatchTrashRequest(threadIdChunk, access_token).catch((err) => {
-                        logger.error(err);
-                    });
-                    logger.trace(batchResult);
-                })
+    const startBatchProcess = async () => {
+      let threadIdChunks = chunkThreadIds(threadIds, []);
+      await asyncForEach(threadIdChunks, async (threadIdChunk) => {
+          let batchResult = await createBatchTrashRequest(threadIdChunk, access_token).catch((err) => {
+              logger.error(err);
+          });
+          logger.trace(batchResult);
+      })
 
-                rabbit.ack('actions.1', actionsMsg);
+      ackMessage(actionsMsg, userIdMsg);
 
-                deleteSender(userId, senderId, (err, res) => {
-                    if (err) {
-                        return logger.error(err);
-                    }
-                    logger.trace(res);
-                });
+      deleteSender(userId, senderId, (err, res) => {
+          if (err) {
+              return logger.error(err);
+          }
+          logger.trace(res);
+      });
 
-                deleteThreadIds(userId, threadIds, (err, res) => {
-                    if (err) {
-                        return logger.error(err);
-                    }
-                    logger.trace(res);
-                });
-            }
+      deleteThreadIds(userId, threadIds, (err, res) => {
+          if (err) {
+              return logger.error(err);
+          }
+          logger.trace(res);
+      });
+    }
 
-            startBatchProcess().catch(error => {
-                rabbit.nack('actions.1', actionsMsg);
-                logger.error(error);
-            })
-        })
+    startBatchProcess().catch(error => {
+      nackMessage(actionsMsg);
+      logger.error(error);
+    });
+  });
 }
 
-function unsubscribeSender(actionsMsg) {
+function unsubscribeSender(actionsMsg, userIdMsg) {
   let actionsObj = actionsMsg.content;
   let userId = actionsObj.userId;
   let access_token = actionsObj.access_token;
@@ -183,18 +183,16 @@ function unsubscribeSender(actionsMsg) {
     metadata = cleanSender(unsubscribeEmail);
 
     httpSendMessageRequest(access_token, metadata.to, metadata.subject).then((response) => {
-      unsubscribeSenderFromMongo(userId, senderId, (err, response) => {
+      unsubscribeSenderFromMongo(userId, senderId, (err, mongoResponse) => {
         if (err) {
           logger.error(err);
         } else {
-          logger.trace('unsubscribeSenderFromMongo: ' + response);
+          logger.trace('unsubscribeSenderFromMongo: ' + mongoResponse);
         }
       });
-
-      rabbit.ack('actions.1', actionsMsg);
-
+      ackMessage(actionsMsg, userIdMsg);
     }).catch((error) => {
-      rabbit.nack('actions.1', actionsMsg);
+      nackMessage(actionsMsg)
     });
   } else {
     unsubscribeSenderFromMongo(userId, senderId, (err, response) => {
@@ -204,6 +202,7 @@ function unsubscribeSender(actionsMsg) {
         logger.trace('unsubscribeSenderFromMongo: ' + response);
       }
     });
+    ackMessage(actionsMsg, userIdMsg);
   }
 }
 
@@ -239,6 +238,28 @@ function cleanSender(unsubscribeEmail) {
   return {
     to: to,
     subject: subject
+  }
+
+}
+
+function nackMessage(actionsMsg) {
+  let actionsObj = actionsMsg.content;
+  let userId = actionsObj.userId;
+  rabbit.ack('actions.userId.' + userId, actionsMsg);
+}
+
+function ackMessage(actionsMsg, userIdMsg) {
+  let actionsObj = actionsMsg.content;
+  let userId = actionsObj.userId;
+
+  rabbit.ack('actions.userId.' + userId, actionsMsg);
+
+  if (actionsObj.lastMsg === true) {
+    rabbit.ack('actions.1', userIdMsg);
+    rabbit.deleteQueue('actions.userId.' + userId, 'actions.userId.' + userId, {}, (err, ok) => {
+      rabbit.cancelChannel('actions.userId.' + userId);
+      rabbit.closeChannel('actions.userId.' + userId);
+    });
   }
 
 }
