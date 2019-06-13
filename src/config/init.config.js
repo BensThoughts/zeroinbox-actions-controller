@@ -1,5 +1,7 @@
 module.exports = {
     mongo_uri: process.env.MONGO_URI,
+    actions_health_host: process.env.ACTIONS_HEALTH_HOST,
+    actions_health_port: process.env.ACTIONS_HEALTH_PORT,
     GMAIL_BATCH_ENDPOINT: process.env.GMAIL_BATCH_ENDPOINT || 'https://www.googleapis.com/batch/gmail/v1',
     ACTIONS_BATCH_SIZE: process.env.ACTIONS_BATCH_SIZE || 50,
     log_level: process.env.LOG_LEVEL || 'production',

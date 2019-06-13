@@ -5,8 +5,19 @@ const rabbit = require('zero-rabbit');
 
 const actionsController = require('./core/actions.controller');
 
-const { mongo_uri } = require('./config/init.config');
-const { rabbit_config } = require('./config/rabbit.config')
+const { 
+  mongo_uri,
+  actions_health_host,
+  actions_health_port
+} = require('./config/init.config');
+const { rabbit_config } = require('./config/rabbit.config');
+
+const express = require('express');
+const KubeHealthCheck = express();
+KubeHealthCheck.get('/healthz', (req, res, next) => {
+  res.status(200).send();
+});
+
 
 mongoose.connect(mongo_uri, { useNewUrlParser: true }, (err, db) => {
   if (err) {
@@ -18,35 +29,67 @@ mongoose.connect(mongo_uri, { useNewUrlParser: true }, (err, db) => {
       logger.info('Connected to RabbitMQ!');
 
       rabbit.setChannelPrefetch('actions.1', 1);
-      rabbit.consume('actions.1', 'batch.actions.q.1', (actionsMsg) => {
-        // next 2 lines for debugging
-        let actionsMessage = JSON.stringify(actionsMsg.content);
-        logger.debug('Actions Message: ' + actionsMessage);        
-        actionsController(actionsMsg);
-        // QUESTION: new? or created new class for this? or something else?
-      }, { noAck: false }); 
+
+      rabbit.consume('actions.1', 'actions.userIds.q.1', (userIdMsg) => {
+        let userIdMessage = userIdsMsg.content;
+        let userId = userIdMessage.userId;
+        logger.trace('New userId actions message, userId: ' + userId);
+        consumer(userId);
+      }, { noAck: true });
+
+      let server = googleApi.listen(actions_health_port, actions_health_host);
+      processHandler(server);
+      logger.info(`Running health check on http://${actions_health_host}:${actions_health_port}`);
     });
   }
 });
+
+function consumer(userId) {
+  rabbit.assertQueue('actions.userId.' + userId, 'actions.userId.' + userId, { autoDelete: false, durable: true }, (assertQueueErr, q) => {
+    if (assertQueueErr) {
+      return logger.error(assertQueueErr);
+    } else {
+      rabbit.setChannelPrefetch('actions.userId.' + userId, 1);
+      rabbit.bindQueue('actions.userId.' + userId, 'actions.userId.' + userId, 'actions.topic.ex.1', 'userId.' + userId, {}, (bindExchangeErr, ok) => {
+        if (bindExchangeErr) {
+          return logger.error(bindExchangeErr);
+        } else {
+          rabbit.consume('actions.userId.' + userId, 'actions.userId.' + userId, (actionsMsg) => {
+            let actionsMessage = JSON.stringify(actionsMsg.content);
+            logger.trace('Actions Message: ' + actionsMessage);
+            actionsController(actionsMsg);
+          }, { noAck: false })
+        }
+      });
+    }
+  });
+}
 
 // Graceful shutdown SIG handling
 const signals= {
   'SIGTERM': 15
 }
 
-Object.keys(signals).forEach((signal) => {
-  process.on(signal, () => {
-    logger.info(`Process received a ${signal} signal`);
-    shutdown(signal, signals[signal]);
+function processHandler(server) {
+  Object.keys(signals).forEach((signal) => {
+    process.on(signal, () => {
+      logger.info(`Process received a ${signal} signal`);
+      shutdown(server, signal, signals[signal]);
+    });
   });
-});
+}
 
-const shutdown = (signal, value) => {
+const shutdown = (server, signal, value) => {
   logger.info('shutdown!');
     logger.info(`Server stopped by ${signal} with value ${value}`);
     rabbit.disconnect(() => {
       logger.info('Rabbit disconnected!');
-      mongoose.disconnect();
+      mongoose.disconnect((error) => {
+
+      });
+      server.close(() => {
+
+      })
       logger.info('Mongo disconnected!')
     });
 };
