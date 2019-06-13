@@ -37,7 +37,7 @@ mongoose.connect(mongo_uri, { useNewUrlParser: true }, (err, db) => {
         consumer(userIdMsg);
       }, { noAck: true });
 
-      let server = googleApi.listen(actions_health_port, actions_health_host);
+      let server = KubeHealthCheck.listen(actions_health_port, actions_health_host);
       processHandler(server);
       logger.info(`Running health check on http://${actions_health_host}:${actions_health_port}`);
     });
