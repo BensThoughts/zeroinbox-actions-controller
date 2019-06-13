@@ -1,6 +1,7 @@
 const Sender = require('../models/sender.model');
 const ThreadId = require('../models/Thread_ID.model');
 const logger = require('../../loggers/log4js');
+const LoadingStatus = require('../models/loading.model');
 
 exports.findThreadIds = function findThreadIds(userId, senderId, callback) {
     let conditions = { 
@@ -64,4 +65,35 @@ exports.unsubscribeSenderFromMongo = function unsubscribeSender(userId, senderId
   Sender.updateOne(conditions, update, (err, res) => {
     callback(err, res);
   })
+}
+
+exports.lockActionsPipeline = function(userId, callback) {
+  let conditions = { userId: userId }
+  let update = {
+    actionsLock: true
+  }
+  LoadingStatus.updateOne(conditions, update, (err, res) => {
+    callback(err, res);
+  });
+}
+
+exports.unlockActionsPipeline = function(userId, callback) {
+  let conditions = { userId: userId }
+  let update = {
+    actionsLock: false
+  }
+  LoadingStatus.updateOne(conditions, update, (err, res) => {
+    callback(err, res);
+  });
+}
+
+exports.checkActionsLock = function(userId, callback) {
+  let conditions = { userId: userId }
+  let projection = {
+    actionsLock: 1,
+    _id: 0
+  }
+  LoadingStatus.findOne(conditions, projection, (err, res) => {
+    callback(err, res);
+  });
 }

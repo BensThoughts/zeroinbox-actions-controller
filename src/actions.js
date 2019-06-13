@@ -3,6 +3,12 @@ const logger = require('./loggers/log4js');
 
 const rabbit = require('zero-rabbit');
 
+const {
+  checkActionsLock,
+  lockActionsPipeline,
+  unlockActionsPipeline
+} = require('./core/libs/mongoose.utils');
+
 const actionsController = require('./core/actions.controller');
 
 const { 
@@ -30,12 +36,26 @@ mongoose.connect(mongo_uri, { useNewUrlParser: true }, (err, db) => {
 
       rabbit.setChannelPrefetch('actions.1', 1);
 
-      rabbit.consume('actions.1', 'actions.userIds.q.1', (userIdMsg) => {
-        let userIdMessage = userIdsMsg.content;
-        let userId = userIdMessage.userId;
+      rabbit.consume('actions.1', 'actions.direct.q.1', (actionsMsg) => {
+        let actionsObj = actionsMsg.content;
+        let userId = actionsObj.userId;
         logger.trace('New userId actions message, userId: ' + userId);
-        consumer(userIdMsg);
-      }, { noAck: true });
+        // checkActionsLock(userId, (checkLockErr, checkLockRes) => {
+        //  let actionsLock = checkLockRes.actionsLock;
+        //   if ((actionsLock === undefined) || (actionsLock === false)) {
+        //    logger.debug('ACTION CHECK UNLOCKED');
+        //    lockActionsPipeline(userId, (lockActionsErr, lockActionsRes) => {
+              actionsController(actionsMsg);
+        //    });
+        //  } else {
+        //    logger.debug('ACTION CHECK LOCKED')
+        //    setTimeout((actionsMsg) => {
+        //      rabbit.nack('actions.1', actionsMsg);
+        //    }, 50);
+        //  }
+        // });
+        // consumer(actionsMsg);
+      }, { noAck: false });
 
       let server = KubeHealthCheck.listen(actions_health_port, actions_health_host);
       processHandler(server);
@@ -44,27 +64,6 @@ mongoose.connect(mongo_uri, { useNewUrlParser: true }, (err, db) => {
   }
 });
 
-function consumer(userIdMsg) {
-  let userId = userIdMsg.content.userId;
-  rabbit.assertQueue('actions.userId.' + userId, 'actions.userId.' + userId, { autoDelete: false, durable: true }, (assertQueueErr, q) => {
-    if (assertQueueErr) {
-      return logger.error(assertQueueErr);
-    } else {
-      rabbit.setChannelPrefetch('actions.userId.' + userId, 1);
-      rabbit.bindQueue('actions.userId.' + userId, 'actions.userId.' + userId, 'actions.topic.ex.1', 'userId.' + userId, {}, (bindExchangeErr, ok) => {
-        if (bindExchangeErr) {
-          return logger.error(bindExchangeErr);
-        } else {
-          rabbit.consume('actions.userId.' + userId, 'actions.userId.' + userId, (actionsMsg) => {
-            let actionsMessage = JSON.stringify(actionsMsg.content);
-            logger.trace('Actions Message: ' + actionsMessage);
-            actionsController(actionsMsg, userIdMsg);
-          }, { noAck: false })
-        }
-      });
-    }
-  });
-}
 
 // Graceful shutdown SIG handling
 const signals= {
@@ -94,3 +93,30 @@ const shutdown = (server, signal, value) => {
       logger.info('Mongo disconnected!')
     });
 };
+
+
+
+
+
+/* function consumer(userIdMsg) {
+  let userId = userIdMsg.content.userId;
+  rabbit.assertQueue('actions.userId.' + userId, 'actions.userId.' + userId, { autoDelete: false, durable: true }, (assertQueueErr, q) => {
+    if (assertQueueErr) {
+      return logger.error(assertQueueErr);
+    } else {
+      logger.debug(q);
+       rabbit.setChannelPrefetch('actions.userId.' + userId, 1);
+      rabbit.bindQueue('actions.userId.' + userId, 'actions.userId.' + userId, 'actions.topic.ex.1', 'userId.' + userId, {}, (bindExchangeErr, ok) => {
+        if (bindExchangeErr) {
+          return logger.error(bindExchangeErr);
+        } else {
+          rabbit.consume('actions.userId.' + userId, 'actions.userId.' + userId, (actionsMsg) => {
+            let actionsMessage = JSON.stringify(actionsMsg.content);
+            logger.trace('Actions Message: ' + actionsMessage);
+            actionsController(actionsMsg, userIdMsg);
+          }, { noAck: false })
+        }
+      });
+    }
+  });
+} */

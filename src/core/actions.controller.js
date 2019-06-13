@@ -4,7 +4,8 @@ const {
     findThreadIds,
     deleteSender,
     deleteThreadIds,
-    unsubscribeSenderFromMongo
+    unsubscribeSenderFromMongo,
+    unlockActionsPipeline
 } = require('./libs/mongoose.utils')
 
 const {
@@ -24,32 +25,32 @@ const {
 const rabbit = require('zero-rabbit');
 
 
-function actionsController(actionsMsg, userIdMsg) {
+function actionsController(actionsMsg) {
 
     let actionType = actionsMsg.content.actionType;
 
     switch(actionType) {
 
         case 'delete':
-            trashSender(actionsMsg, userIdMsg);
+            trashSender(actionsMsg);
             return;
 
         case 'label':
-            labelSender(actionsMsg, userIdMsg);
+            labelSender(actionsMsg);
             return;
 
         case 'unsubscribe':
-            unsubscribeSender(actionsMsg, userIdMsg);
+            unsubscribeSender(actionsMsg);
             return;
 
         default:
             logger.error('Action was not one of delete, label, or unsubscribe');
-            ackMessage(actionsMsg, userIdMsg);
+            ackMessage(actionsMsg);
     }
  
 }
 
-function labelSender(actionsMsg, userIdMsg) {
+function labelSender(actionsMsg) {
     let actionsObj = actionsMsg.content;
 
     let userId = actionsObj.userId;
@@ -97,7 +98,7 @@ function labelSender(actionsMsg, userIdMsg) {
                   logger.trace(batchResult);
               });
 
-              ackMessage(actionsMsg, userIdMsg);
+              ackMessage(actionsMsg);
               deleteSender(userId, senderId, (err, res) => {
                   if (err) {
                       return logger.error(err);
@@ -125,7 +126,7 @@ function labelSender(actionsMsg, userIdMsg) {
     })
 }
 
-function trashSender(actionsMsg, userIdMsg) {
+function trashSender(actionsMsg) {
   let actionsObj = actionsMsg.content;
 
   let userId = actionsObj.userId;
@@ -143,7 +144,7 @@ function trashSender(actionsMsg, userIdMsg) {
           logger.trace(batchResult);
       })
 
-      ackMessage(actionsMsg, userIdMsg);
+      ackMessage(actionsMsg);
 
       deleteSender(userId, senderId, (err, res) => {
           if (err) {
@@ -167,7 +168,7 @@ function trashSender(actionsMsg, userIdMsg) {
   });
 }
 
-function unsubscribeSender(actionsMsg, userIdMsg) {
+function unsubscribeSender(actionsMsg) {
   let actionsObj = actionsMsg.content;
   let userId = actionsObj.userId;
   let access_token = actionsObj.access_token;
@@ -190,7 +191,7 @@ function unsubscribeSender(actionsMsg, userIdMsg) {
           logger.trace('unsubscribeSenderFromMongo: ' + mongoResponse);
         }
       });
-      ackMessage(actionsMsg, userIdMsg);
+      ackMessage(actionsMsg);
     }).catch((error) => {
       nackMessage(actionsMsg)
     });
@@ -202,7 +203,7 @@ function unsubscribeSender(actionsMsg, userIdMsg) {
         logger.trace('unsubscribeSenderFromMongo: ' + response);
       }
     });
-    ackMessage(actionsMsg, userIdMsg);
+    ackMessage(actionsMsg);
   }
 }
 
@@ -243,25 +244,16 @@ function cleanSender(unsubscribeEmail) {
 }
 
 function nackMessage(actionsMsg) {
-  let actionsObj = actionsMsg.content;
-  let userId = actionsObj.userId;
-  rabbit.ack('actions.userId.' + userId, actionsMsg);
+  rabbit.nack('actions.1', actionsMsg);
 }
 
-function ackMessage(actionsMsg, userIdMsg) {
+function ackMessage(actionsMsg) {
   let actionsObj = actionsMsg.content;
   let userId = actionsObj.userId;
 
-  rabbit.ack('actions.userId.' + userId, actionsMsg);
-
-  if (actionsObj.lastMsg === true) {
-    rabbit.ack('actions.1', userIdMsg);
-    rabbit.deleteQueue('actions.userId.' + userId, 'actions.userId.' + userId, {}, (err, ok) => {
-      rabbit.cancelChannel('actions.userId.' + userId);
-      rabbit.closeChannel('actions.userId.' + userId);
-    });
-  }
-
+  // unlockActionsPipeline(userId, (unlockErr, unlockRes) => {
+    rabbit.ack('actions.1', actionsMsg);
+  // });
 }
 
 
