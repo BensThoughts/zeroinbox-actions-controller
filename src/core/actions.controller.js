@@ -218,9 +218,9 @@ function cleanSender(unsubscribeEmail) {
   }
 
   // find the .com and get the sender (should be 0 to the end of .com)
-  let toIndex = unsubscribeEmail.search(/\.com/i);
-  logger.trace(toIndex);
-  to = unsubscribeEmail.slice(0, toIndex + 4);
+  // let toIndex = unsubscribeEmail.search(/\.com/i);
+  // logger.trace(toIndex);
+  // to = unsubscribeEmail.slice(0, toIndex + 4);
 
   // find out if there is a subject query line (should be ?subject='' and should come right after .com)
   let subjectIndex = unsubscribeEmail.search(/\?subject=/i);
