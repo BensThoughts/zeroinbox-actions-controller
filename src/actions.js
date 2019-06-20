@@ -41,21 +41,7 @@ mongoose.connect(mongo_uri, { useNewUrlParser: true }, (err, db) => {
         let userId = actionsObj.userId;
         logger.trace(actionsObj);
         logger.trace('New userId actions message, userId: ' + userId);
-        // checkActionsLock(userId, (checkLockErr, checkLockRes) => {
-        //  let actionsLock = checkLockRes.actionsLock;
-        //   if ((actionsLock === undefined) || (actionsLock === false)) {
-        //    logger.debug('ACTION CHECK UNLOCKED');
-        //    lockActionsPipeline(userId, (lockActionsErr, lockActionsRes) => {
-              actionsController(actionsMsg);
-        //    });
-        //  } else {
-        //    logger.debug('ACTION CHECK LOCKED')
-        //    setTimeout((actionsMsg) => {
-        //      rabbit.nack('actions.1', actionsMsg);
-        //    }, 50);
-        //  }
-        // });
-        // consumer(actionsMsg);
+          actionsController(actionsMsg);
       }, { noAck: false });
 
       let server = KubeHealthCheck.listen(actions_health_port, actions_health_host);

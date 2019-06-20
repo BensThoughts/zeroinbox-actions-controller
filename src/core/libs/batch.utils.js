@@ -3,7 +3,7 @@ const logger = require('../../loggers/log4js');
 
 const {
     GMAIL_BATCH_ENDPOINT,
-    ACTIONS_BATCH_SIZE
+    GMAIL_BATCH_MODIFY_ENDPOINT
   } = require('../../config/init.config');
 
 /**
@@ -34,18 +34,18 @@ async function asyncForEach(array, callback) {
  * @return {Array<Array<T>>}       The result after the last subArray is added;
  */
 
-function chunkThreadIds(array, result) {
+function chunkIds(array, result, chunkSize) {
 
-    if (array.length <= ACTIONS_BATCH_SIZE) {
-      result = result.concat([array]);
-      return result;
-    }
-  
-    result = result.concat([array.slice(0, ACTIONS_BATCH_SIZE)]);
-    array = array.slice(ACTIONS_BATCH_SIZE);
-  
-    return chunkThreadIds(array, result);
-  
+  if (array.length <= chunkSize) {
+    result = result.concat([array]);
+    return result;
+  }
+
+  result = result.concat([array.slice(0, chunkSize)]);
+  array = array.slice(chunkSize);
+
+  return chunkIds(array, result, chunkSize);
+
 }
 
 
@@ -64,7 +64,47 @@ function chunkThreadIds(array, result) {
  * @return {Promise}                    The actual batch request to be executed
  */
 
-function createBatchTrashRequest(threadIdsChunk, access_token) {
+function createBatchTrashRequest(batchChunk, access_token) {
+  var batch = new Batchelor({
+    'uri': GMAIL_BATCH_ENDPOINT,
+    'method': 'POST',
+    'headers': {
+      'Content-Type': 'multipart/mixed',
+      'Authorization': 'Bearer ' + access_token
+    }
+  });
+  
+  logger.debug('batchChunk length: ' + batchChunk.length);
+
+  batchChunk.forEach((messageIdChunk) => {
+    batch.add({
+      'method': 'POST',
+      'path': GMAIL_BATCH_MODIFY_ENDPOINT,
+      'parameters': {
+        'Content-Type':'application/json',
+        'body': {
+          "ids": messageIdChunk,
+          "addLabelIds": ['TRASH'],
+          "removeLabelIds": ['INBOX']
+        }
+      }
+    });
+  });
+
+  return new Promise((resolve, reject) => {
+    batch.run((err, response) => {
+      if (err) {
+        logger.error("Error: " + err);
+        reject(err);
+      } else {
+        //results = results.concat([response]);
+        resolve(response);
+      }
+    });
+  });
+}
+
+  function createBatchLabelRequest(batchChunk, access_token, labelId) {
     var batch = new Batchelor({
       'uri': GMAIL_BATCH_ENDPOINT,
       'method': 'POST',
@@ -73,49 +113,17 @@ function createBatchTrashRequest(threadIdsChunk, access_token) {
         'Authorization': 'Bearer ' + access_token
       }
     });
-  
+    
+    logger.debug('batchChunk length: ' + batchChunk.length);
 
-    threadIdsChunk.forEach((threadId) => {
+    batchChunk.forEach((messageIdChunk) => {
       batch.add({
         'method': 'POST',
-        'path': '/gmail/v1/users/me/threads/' + threadId + '/trash',
-        'parameters': {
-          'Content-Type':'application/json',
-          'body': {'object':{}}
-        }
-      });
-    });
-  
-    return new Promise((resolve, reject) => {
-      batch.run((err, response) => {
-        if (err) {
-          logger.error("Error: " + err);
-          reject(err);
-        } else {
-          //results = results.concat([response]);
-          resolve(response);
-        }
-      });
-    });
-  }
-
-  function createBatchLabelRequest(threadIdsChunk, access_token, labelId) {
-    var batch = new Batchelor({
-      'uri': GMAIL_BATCH_ENDPOINT,
-      'method': 'POST',
-      'headers': {
-        'Content-Type': 'multipart/mixed',
-        'Authorization': 'Bearer ' + access_token
-      }
-    });
-  
-    threadIdsChunk.forEach((threadId) => {
-      batch.add({
-        'method': 'POST',
-        'path': '/gmail/v1/users/me/threads/' + threadId + '/modify',
+        'path': GMAIL_BATCH_MODIFY_ENDPOINT,
         'parameters': {
           'Content-Type':'application/json',
           'body': {
+            "ids": messageIdChunk,
             "addLabelIds": [labelId],
             "removeLabelIds": ['INBOX']
           }
@@ -129,7 +137,6 @@ function createBatchTrashRequest(threadIdsChunk, access_token) {
           logger.error("Error: " + err);
           reject(err);
         } else {
-          //results = results.concat([response]);
           resolve(response);
         }
       });
@@ -139,7 +146,7 @@ function createBatchTrashRequest(threadIdsChunk, access_token) {
 
 module.exports = {
     asyncForEach,
-    chunkThreadIds,
+    chunkIds,
     createBatchTrashRequest,
     createBatchLabelRequest
 };

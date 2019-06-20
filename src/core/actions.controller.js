@@ -1,16 +1,15 @@
 
 const logger = require('../loggers/log4js');
 const {
-    findThreadIds,
+    findSenderIds,
     deleteSender,
     deleteThreadIds,
     unsubscribeSenderFromMongo,
     findSenderAddress,
-    unlockActionsPipeline
 } = require('./libs/mongoose.utils')
 
 const {
-    chunkThreadIds,
+    chunkIds,
     createBatchTrashRequest,
     createBatchLabelRequest,
     asyncForEach
@@ -22,6 +21,11 @@ const {
     httpSendMessageRequest,
     httpPostFilterRequest
 } = require('./libs/api.utils');
+
+const {
+  GMAIL_BATCH_MODIFY_SIZE,
+  BATCHELOR_BATCH_SIZE
+} = require('../config/init.config');
 
 
 const rabbit = require('zero-rabbit');
@@ -53,36 +57,40 @@ function actionsController(actionsMsg) {
 }
 
 function labelSender(actionsMsg) {
-    let actionsObj = actionsMsg.content;
+  let actionsObj = actionsMsg.content;
 
-    let userId = actionsObj.userId;
-    let access_token = actionsObj.access_token;
-    let senderId = actionsObj.senderId;
-    let category = actionsObj.category;
-    let labelName = actionsObj.labelName;
+  let userId = actionsObj.userId;
+  let access_token = actionsObj.access_token;
+  let senderId = actionsObj.senderId;
+  let category = actionsObj.category;
+  let labelName = actionsObj.labelName;
 
-    let filter = actionsObj.filter;
+  let filter = actionsObj.filter;
 
 
 
-    findThreadIds(userId, senderId, (err, threadIds) => {
+  findSenderIds(userId, senderId, (err, threadIds, messageIds) => {
+      if (err) {
+        logger.error(err);
+        nackMessage(actionsMsg);
+      } else {
 
         httpGetLabelsRequest(access_token).then( async (response) => {
           let labelId;
-
+  
           let labelNames = response.labels.map(label => label.name);
-
+  
           let categoryExists = labelNames.includes(category);
-
+  
           if (category != 'NO_CATEGORY') {
               labelName = category + '/' + labelName;
               if (!categoryExists) {
                   await httpPostLabelRequest(access_token, category).catch((err) => logger.error(err));
               }
           }
-
+  
           let labelNameExists = labelNames.includes(labelName);
-
+  
           if (!labelNameExists) {
             await httpPostLabelRequest(access_token, labelName).then((response) => {
               labelId = response.id;
@@ -96,24 +104,25 @@ function labelSender(actionsMsg) {
           if (filter) {
             createFilter(userId, access_token, labelId, senderId);
           }
-
-          const startBatchProcess = async () => {
-              let threadIdChunks = chunkThreadIds(threadIds, []);
   
-              await asyncForEach(threadIdChunks, async (threadIdChunk) => {
-                  let batchResult = await createBatchLabelRequest(threadIdChunk, access_token, labelId).catch((err) => {
+          const startBatchProcess = async () => {
+              let messageIdChunks = chunkIds(messageIds, [], GMAIL_BATCH_MODIFY_SIZE);
+              let batchChunks = chunkIds(messageIdChunks, [], BATCHELOR_BATCH_SIZE); // for safety just do one item batches
+
+              await asyncForEach(batchChunks, async (batchChunk) => {
+                  let batchResult = await createBatchLabelRequest(batchChunk, access_token, labelId).catch((err) => {
                       logger.error(err);
                   });
                   logger.trace(batchResult);
               });
-
+  
               ackMessage(actionsMsg);
               deleteSender(userId, senderId, (err, res) => {
                   if (err) {
                       return logger.error(err);
                   }
               });
-
+  
               deleteThreadIds(userId, threadIds, (err, res) => {
                   if (err) {
                       return logger.error(err);
@@ -127,12 +136,14 @@ function labelSender(actionsMsg) {
               logger.error(err);
           })
     
-
+  
         }).catch((err) => {
             nackMessage(actionsMsg);
             logger.error(err)
         });
-    })
+      }
+    
+  })
 }
 
 function createFilter(userId, access_token, labelId, senderId) {
@@ -156,12 +167,13 @@ function trashSender(actionsMsg) {
   let access_token = actionsObj.access_token;
   let senderId = actionsObj.senderId;
 
-  findThreadIds(userId, senderId, (err, threadIds) => {
+  findSenderIds(userId, senderId, (err, threadIds, messageIds) => {
 
     const startBatchProcess = async () => {
-      let threadIdChunks = chunkThreadIds(threadIds, []);
-      await asyncForEach(threadIdChunks, async (threadIdChunk) => {
-          let batchResult = await createBatchTrashRequest(threadIdChunk, access_token).catch((err) => {
+      let messageIdChunks = chunkIds(messageIds, [], GMAIL_BATCH_MODIFY_SIZE);
+      let batchChunks = chunkIds(messageIdChunks, [], BATCHELOR_BATCH_SIZE);
+      await asyncForEach(batchChunks, async (batchChunk) => {
+          let batchResult = await createBatchTrashRequest(batchChunk, access_token).catch((err) => {
               logger.error(err);
           });
           logger.trace(batchResult);
@@ -271,12 +283,7 @@ function nackMessage(actionsMsg) {
 }
 
 function ackMessage(actionsMsg) {
-  let actionsObj = actionsMsg.content;
-  let userId = actionsObj.userId;
-
-  // unlockActionsPipeline(userId, (unlockErr, unlockRes) => {
-    rabbit.ack('actions.1', actionsMsg);
-  // });
+  rabbit.ack('actions.1', actionsMsg);
 }
 
 
