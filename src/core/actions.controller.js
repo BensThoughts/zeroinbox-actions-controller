@@ -5,6 +5,7 @@ const {
     deleteSender,
     deleteThreadIds,
     unsubscribeSenderFromMongo,
+    findSenderAddress,
     unlockActionsPipeline
 } = require('./libs/mongoose.utils')
 
@@ -18,7 +19,8 @@ const {
 const {
     httpPostLabelRequest,
     httpGetLabelsRequest,
-    httpSendMessageRequest
+    httpSendMessageRequest,
+    httpPostFilterRequest
 } = require('./libs/api.utils');
 
 
@@ -59,6 +61,9 @@ function labelSender(actionsMsg) {
     let category = actionsObj.category;
     let labelName = actionsObj.labelName;
 
+    let filter = actionsObj.filter;
+
+
 
     findThreadIds(userId, senderId, (err, threadIds) => {
 
@@ -86,7 +91,11 @@ function labelSender(actionsMsg) {
             labelId = response.labels.find((element, index, array) => {
               return element.name === labelName;
             }).id;
-          }    
+          }
+          
+          if (filter) {
+            createFilter(userId, access_token, labelId, senderId);
+          }
 
           const startBatchProcess = async () => {
               let threadIdChunks = chunkThreadIds(threadIds, []);
@@ -124,6 +133,20 @@ function labelSender(actionsMsg) {
             logger.error(err)
         });
     })
+}
+
+function createFilter(userId, access_token, labelId, senderId) {
+  findSenderAddress(userId, senderId, (err, senderAddress) => {
+    if (err) {
+      return logger.error(err);
+    } else {
+      httpPostFilterRequest(access_token, labelId, senderAddress).then((response) => {
+        logger.trace('filters response: ' + JSON.stringify(response));
+      }).catch((err) => {
+        logger.error(err);
+      });
+    }
+  });
 }
 
 function trashSender(actionsMsg) {

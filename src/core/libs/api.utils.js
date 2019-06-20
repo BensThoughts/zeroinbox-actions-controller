@@ -3,7 +3,8 @@ const {
     GAPI_MAX_RETRIES,
     GAPI_INIT_RETRY_DELAY,
     GMAIL_LABEL_ENDPOINT,
-    GMAIL_MESSAGE_SEND_ENDPOINT
+    GMAIL_MESSAGE_SEND_ENDPOINT,
+    GMAIL_FILTER_ENDPOINT
   } = require('../../config/init.config');
 
 const logger = require('../../loggers/log4js');
@@ -66,6 +67,36 @@ function httpPostLabelPromise(url, access_token, labelName) {
       request.get(options, (error, response, body) => {
         if (!error && response.statusCode == 200) {
           resolve(JSON.parse(body));
+        } else {
+          logger.error('Error contacting ' + url + ': ' + JSON.stringify(error));
+          reject(error);
+        }
+      })
+    });
+  }
+
+  function httpPostFilterPromise(url, access_token, labelId, senderAddress) {
+    const options = {
+      url: url,
+      headers: {
+        'Authorization': 'Bearer ' + access_token
+      },
+      body: {
+        criteria: {
+          from: senderAddress
+        },
+        action: {
+          addLabelIds: [labelId],
+          removeLabelIds: ['INBOX']
+        }
+      },
+      json: true
+    };
+
+    return new Promise((resolve, reject) => {
+      request.post(options, (error, response, body) => {
+        if (!error && response.statusCode == 200) {
+          resolve(body);
         } else {
           logger.error('Error contacting ' + url + ': ' + JSON.stringify(error));
           reject(error);
@@ -138,5 +169,15 @@ function httpPostLabelPromise(url, access_token, labelName) {
     let delayMultiplier = GAPI_DELAY_MULTIPLIER;
     let promiseCreator = () => httpGetLabelsPromise(url, access_token);
     
+    return retryHttpRequest(promiseCreator, retries, delay, delayMultiplier);
+  }
+
+  exports.httpPostFilterRequest = function(access_token, labelId, senderAddress) {
+    let url = GMAIL_FILTER_ENDPOINT;
+    let retries = GAPI_MAX_RETRIES;
+    let delay = GAPI_INIT_RETRY_DELAY;
+    let delayMultiplier = GAPI_DELAY_MULTIPLIER;
+    let promiseCreator = () => httpPostFilterPromise(url, access_token, labelId, senderAddress);
+
     return retryHttpRequest(promiseCreator, retries, delay, delayMultiplier);
   }

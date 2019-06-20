@@ -39,6 +39,7 @@ mongoose.connect(mongo_uri, { useNewUrlParser: true }, (err, db) => {
       rabbit.consume('actions.1', 'actions.direct.q.1', (actionsMsg) => {
         let actionsObj = actionsMsg.content;
         let userId = actionsObj.userId;
+        logger.trace(actionsObj);
         logger.trace('New userId actions message, userId: ' + userId);
         // checkActionsLock(userId, (checkLockErr, checkLockRes) => {
         //  let actionsLock = checkLockRes.actionsLock;

@@ -67,6 +67,22 @@ exports.unsubscribeSenderFromMongo = function unsubscribeSender(userId, senderId
   })
 }
 
+exports.findSenderAddress = function(userId, senderId, callback) {
+  let conditions = {
+    userId: userId,
+    senderId: senderId
+  }
+  let projection = {
+    _id: 0,
+    senderAddress: 1
+  }
+
+  Sender.findOne(conditions, projection, (err, res) => {
+    let senderAddress = res.senderAddress;
+    callback(err, senderAddress);
+  })
+}
+
 exports.lockActionsPipeline = function(userId, callback) {
   let conditions = { userId: userId }
   let update = {
