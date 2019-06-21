@@ -105,8 +105,14 @@ exports.findSenderAddress = function(userId, senderId, callback) {
   }
 
   Sender.findOne(conditions, projection, (err, res) => {
-    let senderAddress = res.senderAddress;
-    callback(err, senderAddress);
+    if (res != null) {
+      let senderAddress = res.senderAddress;
+      callback(err, senderAddress);
+    } else {
+      let findError = 'senderId not found or no senderAddress at Sender.findOne() in findSenderAddress()';
+      logger.error(findError);
+      callback(findError, null);
+    }
   })
 }
 
