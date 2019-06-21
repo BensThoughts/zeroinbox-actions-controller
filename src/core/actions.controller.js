@@ -72,7 +72,7 @@ function labelSender(actionsMsg) {
   findSenderIds(userId, senderId, (err, threadIds, messageIds) => {
       if (err) {
         logger.error(err);
-        nackMessage(actionsMsg);
+        ackMessage(actionsMsg);
       } else {
 
         httpGetLabelsRequest(access_token).then( async (response) => {
@@ -228,7 +228,7 @@ function unsubscribeSender(actionsMsg) {
       });
       ackMessage(actionsMsg);
     }).catch((error) => {
-      nackMessage(actionsMsg)
+      ackMessage(actionsMsg)
     });
   } else {
     unsubscribeSenderFromMongo(userId, senderId, (err, response) => {
