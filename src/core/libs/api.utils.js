@@ -16,6 +16,7 @@ function retryHttpRequest(promiseCreator, retries, delay, delayMultiplier) {
         .then(resolve)
         .catch((err) => {
           if (retries == 0) {
+            logger.error('Error inside retryHttpRequest: ' + err);
             reject(err);
           } else {
             let retryFunc = function() {
@@ -45,10 +46,10 @@ function httpPostLabelPromise(url, access_token, labelName) {
 
     return new Promise((resolve, reject) => {
       request.post(options, (error, response, body) => {
-        if (!error && response.statusCode == 200) {
+        if (!error) {
           resolve(body);
         } else {
-          logger.error('Error contacting ' + url + ': ' + JSON.stringify(error));
+          logger.error('Error contacting ' + url + ': ' + error);
           reject(error);
         }
       })
