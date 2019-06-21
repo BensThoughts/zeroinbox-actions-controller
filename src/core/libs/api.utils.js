@@ -47,6 +47,7 @@ function httpPostLabelPromise(url, access_token, labelName) {
     return new Promise((resolve, reject) => {
       request.post(options, (error, response, body) => {
         if (!error) {
+          logger.trace(JSON.stringify(body));
           resolve(body);
         } else {
           logger.error('Error contacting ' + url + ': ' + error);
