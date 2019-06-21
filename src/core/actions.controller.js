@@ -132,13 +132,13 @@ function labelSender(actionsMsg) {
           }
   
           startBatchProcess().catch((err) => {
-              nackMessage(actionsMsg);
+              ackMessage(actionsMsg);
               logger.error(err);
           })
     
   
         }).catch((err) => {
-            nackMessage(actionsMsg);
+            ackMessage(actionsMsg);
             logger.error(err)
         });
       }
@@ -197,7 +197,7 @@ function trashSender(actionsMsg) {
     }
 
     startBatchProcess().catch(error => {
-      nackMessage(actionsMsg);
+      ackMessage(actionsMsg);
       logger.error(error);
     });
   });
