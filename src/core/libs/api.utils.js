@@ -52,7 +52,7 @@ function httpPostLabelPromise(url, access_token, labelName) {
           resolve(body);
         } else {
           logger.error('Error contacting ' + url + ': ' + error);
-          logger.debug('Error body for httpPostLabelPromise: ' + body);
+          logger.error('Error body for httpPostLabelPromise: ' + JSON.stringify(body));
           reject(error);
         }
       })
@@ -74,7 +74,7 @@ function httpPostLabelPromise(url, access_token, labelName) {
           resolve(JSON.parse(body));
         } else {
           logger.error('Error contacting ' + url + ': ' + error);
-          logger.debug('Error body for httpGetLabelsPromise: ' + body);
+          logger.error('Error body for httpGetLabelsPromise: ' + JSON.stringify(body));
           reject(error);
         }
       })
@@ -105,7 +105,7 @@ function httpPostLabelPromise(url, access_token, labelName) {
           resolve(body);
         } else {
           logger.error('Error contacting ' + url + ': ' + error);
-          logger.debug('Error body for httpPostFilterPromise: ' + body);
+          logger.error('Error body for httpPostFilterPromise: ' + JSON.stringify(body));
           reject(error);
         }
       })
