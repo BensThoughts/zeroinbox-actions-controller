@@ -25,34 +25,9 @@ exports.findSenderIds = function findThreadIds(userId, senderId, callback) {
             let messageIds = res.messageIds;
             callback(err, threadIds, messageIds);
         } else {
-            callback(null, []);
+            callback(null, [], []);
         }
     });
-}
-
-exports.findMessageIds = function findMessageIds(userId, senderId, callback) {
-  let conditions = { 
-      userId: userId,
-      senderId: senderId
-  }
-
-  let projection = {
-      messageIds: 1,
-      _id: 0
-  }
-
-  Sender.findOne(conditions, projection, (err, res) => {
-      if (err) {
-          logger.error(err);
-          return callback(err, res);
-      }
-      if (res !== null) {
-          let messageIds = res.messageIds;
-          callback(err, messageIds);
-      } else {
-          callback(null, []);
-      }
-  });
 }
 
 exports.deleteSender = function deleteSender(userId, senderId, callback) {
