@@ -1,6 +1,6 @@
 {
   "name": "zero-inbox-actions-service",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "description": "Backend for zero inbox. The actions service",
   "main": "/src/index.js",
   "directories": {
