@@ -46,15 +46,13 @@ function httpPostLabelPromise(url, access_token, labelName) {
 
     return new Promise((resolve, reject) => {
       request.post(options, (error, response, body) => {
-        logger.debug('POST to: ' + url);
-        logger.debug('Error: ' + error);
-        logger.debug('body: ' + body);
         // logger.debug('response : ' + response);
         if (!error) {
           // logger.trace(JSON.stringify(body));
           resolve(body);
         } else {
           logger.error('Error contacting ' + url + ': ' + error);
+          logger.debug('Error body for httpPostLabelPromise: ' + body);
           reject(error);
         }
       })
@@ -71,14 +69,12 @@ function httpPostLabelPromise(url, access_token, labelName) {
 
     return new Promise((resolve, reject) => {
       request.get(options, (error, response, body) => {
-        logger.debug('GET to: ' + url);
-        logger.debug('Error: ' + error);
-        logger.debug('body: ' + body);
         // logger.debug('response : ' + response);
         if (!error) {
           resolve(JSON.parse(body));
         } else {
-          logger.error('Error contacting ' + url + ': ' + JSON.stringify(error));
+          logger.error('Error contacting ' + url + ': ' + error);
+          logger.debug('Error body for httpGetLabelsPromise: ' + body);
           reject(error);
         }
       })
@@ -108,7 +104,8 @@ function httpPostLabelPromise(url, access_token, labelName) {
         if (!error && response.statusCode == 200) {
           resolve(body);
         } else {
-          logger.error('Error contacting ' + url + ': ' + JSON.stringify(error));
+          logger.error('Error contacting ' + url + ': ' + error);
+          logger.debug('Error body for httpPostFilterPromise: ' + body);
           reject(error);
         }
       })
