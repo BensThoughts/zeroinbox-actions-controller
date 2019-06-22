@@ -74,8 +74,6 @@ function createBatchTrashRequest(batchChunk, access_token) {
     }
   });
   
-  logger.debug('batchChunk length: ' + batchChunk.length);
-
   batchChunk.forEach((messageIdChunk) => {
     batch.add({
       'method': 'POST',
@@ -97,7 +95,6 @@ function createBatchTrashRequest(batchChunk, access_token) {
         logger.error("Error: " + err);
         reject(err);
       } else {
-        //results = results.concat([response]);
         resolve(response);
       }
     });
@@ -114,8 +111,6 @@ function createBatchTrashRequest(batchChunk, access_token) {
       }
     });
     
-    logger.debug('batchChunk length: ' + batchChunk.length);
-
     batchChunk.forEach((messageIdChunk) => {
       batch.add({
         'method': 'POST',

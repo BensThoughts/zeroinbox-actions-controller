@@ -131,12 +131,12 @@ function labelSender(actionsMsg) {
   
               ackMessage(actionsMsg);
               deleteSender(userId, senderId, (mongoErr, res) => {
-                if (err) return logger.error(userId + ' - ' + mongoErr);
+                if (mongoErr) return logger.error(userId + ' - ' + mongoErr);
                 logger.trace(userId + ' - Sender deleted: ' + senderId);
               });
   
               deleteMessageIds(userId, messageIds, (mongoErr, res) => {
-                if (err) return logger.error(userId + ' - ' + mongoErr);
+                if (mongoErr) return logger.error(userId + ' - ' + mongoErr);
                 logger.trace(userId + ' - Message Ids deleted: ' + messageIds.length);
               });
           }
@@ -190,12 +190,12 @@ function trashSender(actionsMsg) {
       ackMessage(actionsMsg);
 
       deleteSender(userId, senderId, (mongoErr, res) => {
-          if (err) return logger.error(userId + ' - ' + mongoErr);
+          if (mongoErr) return logger.error(userId + ' - ' + mongoErr);
           logger.trace(userId + ' - Sender deleted: ' + senderId);
       });
 
       deleteMessageIds(userId, messageIds, (mongoErr, res) => {
-          if (err) return logger.error(userId + ' - ' + mongoErr);
+          if (mongoErr) return logger.error(userId + ' - ' + mongoErr);
           logger.trace(userId + ' - Message Ids deleted: ' + messageIds.length);
       });
     }
@@ -225,7 +225,7 @@ async function unsubscribeSender(actionsMsg) {
     httpSendMessageRequest(access_token, metadata.to, metadata.subject).then((response) => {
       logger.trace(userId + ' - Sent Unsubscribe Request: ' + JSON.stringify(metadata));
       unsubscribeSenderFromMongo(userId, senderId, (mongoErr, mongoResponse) => {
-        if (mongoErr) logger.error(userId + ' - ' + err);
+        if (mongoErr) logger.error(userId + ' - ' + mongoErr);
         logger.trace(userId + ' - Unsubscribe Sender From Mongo: ' + senderId);
       });
       ackMessage(actionsMsg);
@@ -236,7 +236,7 @@ async function unsubscribeSender(actionsMsg) {
 
   } else {
     unsubscribeSenderFromMongo(userId, senderId, (mongoErr, response) => {
-      if (err) return logger.error(userId + ' - ' + mongoErr);
+      if (mongoErr) return logger.error(userId + ' - ' + mongoErr);
       logger.trace(userId + ' - Unsubscribe Sender From Mongo: ' + senderId);
     });
     ackMessage(actionsMsg);
@@ -278,8 +278,8 @@ function cleanSender(unsubscribeEmail) {
 
 function ackMessage(actionsMsg) {
   let userId = actionsMsg.content.userId;
+  logger.trace(userId + ' - Actions Message Acked!');
   rabbit.ack(rabbit_topology.channels.listen, actionsMsg);
-  logger.trace(userId + ' - Actions Message Acked: ' + JSON.stringify(actionsMsg.content));
 }
 
 
