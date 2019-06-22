@@ -2,12 +2,11 @@ const mongoose = require('mongoose');
 const logger = require('./loggers/log4js');
 
 const rabbit = require('zero-rabbit');
+const { 
+  rabbit_config,
+  rabbit_topology
+} = require('./config/rabbit.config');
 
-const {
-  checkActionsLock,
-  lockActionsPipeline,
-  unlockActionsPipeline
-} = require('./core/libs/mongoose.utils');
 
 const actionsController = require('./core/actions.controller');
 
@@ -16,7 +15,6 @@ const {
   actions_health_host,
   actions_health_port
 } = require('./config/init.config');
-const { rabbit_config } = require('./config/rabbit.config');
 
 const express = require('express');
 const KubeHealthCheck = express();
@@ -34,13 +32,13 @@ mongoose.connect(mongo_uri, { useNewUrlParser: true }, (err, db) => {
     rabbit.connect(rabbit_config, (err, conn) => {
       logger.info('Connected to RabbitMQ!');
 
-      rabbit.setChannelPrefetch('actions.1', 1);
+      rabbit.setChannelPrefetch(rabbit_topology.channels.listen, 1);
 
-      rabbit.consume('actions.1', 'actions.direct.q.1', (actionsMsg) => {
+      let actionsQueue = rabbit_topology.queues.actions;
+      rabbit.consume(rabbit_topology.channels.listen, actionsQueue, (actionsMsg) => {
         let actionsObj = actionsMsg.content;
         let userId = actionsObj.userId;
-        logger.trace(actionsObj);
-        logger.trace('New userId actions message, userId: ' + userId);
+        logger.trace(userId + ' - New actions message: ' + JSON.stringify(actionsObj));
           actionsController(actionsMsg);
       }, { noAck: false });
 
@@ -80,30 +78,3 @@ const shutdown = (server, signal, value) => {
       logger.info('Mongo disconnected!')
     });
 };
-
-
-
-
-
-/* function consumer(userIdMsg) {
-  let userId = userIdMsg.content.userId;
-  rabbit.assertQueue('actions.userId.' + userId, 'actions.userId.' + userId, { autoDelete: false, durable: true }, (assertQueueErr, q) => {
-    if (assertQueueErr) {
-      return logger.error(assertQueueErr);
-    } else {
-      logger.debug(q);
-       rabbit.setChannelPrefetch('actions.userId.' + userId, 1);
-      rabbit.bindQueue('actions.userId.' + userId, 'actions.userId.' + userId, 'actions.topic.ex.1', 'userId.' + userId, {}, (bindExchangeErr, ok) => {
-        if (bindExchangeErr) {
-          return logger.error(bindExchangeErr);
-        } else {
-          rabbit.consume('actions.userId.' + userId, 'actions.userId.' + userId, (actionsMsg) => {
-            let actionsMessage = JSON.stringify(actionsMsg.content);
-            logger.trace('Actions Message: ' + actionsMessage);
-            actionsController(actionsMsg, userIdMsg);
-          }, { noAck: false })
-        }
-      });
-    }
-  });
-} */
