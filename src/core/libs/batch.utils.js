@@ -104,7 +104,7 @@ function createBatchTrashRequest(batchChunk, access_token) {
   });
 }
 
-  function createBatchLabelRequest(batchChunk, access_token, labelId) {
+  function createBatchLabelRequest(batchChunk, access_token, labelIds) {
     var batch = new Batchelor({
       'uri': GMAIL_BATCH_ENDPOINT,
       'method': 'POST',
@@ -124,7 +124,7 @@ function createBatchTrashRequest(batchChunk, access_token) {
           'Content-Type':'application/json',
           'body': {
             "ids": messageIdChunk,
-            "addLabelIds": [labelId],
+            "addLabelIds": labelIds,
             "removeLabelIds": ['INBOX']
           }
         }

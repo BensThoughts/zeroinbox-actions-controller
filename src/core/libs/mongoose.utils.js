@@ -1,16 +1,16 @@
-const Sender = require('../models/sender.model');
-const ThreadId = require('../models/Thread_ID.model');
 const logger = require('../../loggers/log4js');
-const LoadingStatus = require('../models/loading.model');
 
-exports.findSenderIds = function findThreadIds(userId, senderId, callback) {
+const Sender = require('../models/sender.model');
+const MessageId = require('../models/messag-id.model');
+
+exports.findSendersMessageIds = function findSendersMessageIds(userId, senderId, callback) {
     let conditions = { 
         userId: userId,
         senderId: senderId
     }
 
     let projection = {
-        threadIds: 1,
+        // threadIdsOriginating: 1,
         messageIds: 1,
         _id: 0
     }
@@ -21,11 +21,12 @@ exports.findSenderIds = function findThreadIds(userId, senderId, callback) {
             return callback(err, res);
         }
         if (res !== null) {
-            let threadIds = res.threadIds;
+            // let threadIds = res.threadIdsOriginating;
             let messageIds = res.messageIds;
-            callback(err, threadIds, messageIds);
+            callback(err, messageIds);
         } else {
-            callback(null, [], []);
+            let errorMessage = userId + ' - Error finding senders in findSenderIds()';
+            callback(errorMessage, [], []);
         }
     });
 }
@@ -41,17 +42,17 @@ exports.deleteSender = function deleteSender(userId, senderId, callback) {
     })
 }
 
-exports.deleteThreadIds = function deleteThreadIds(userId, threadIds, callback) {
-    let conditions = {
-        userId: userId,
-        threadId: {
-            "$in": threadIds
-        }
-    };
-    
-    ThreadId.deleteMany(conditions, (err, res) => {
-        callback(err, res);
-    })
+exports.deleteMessageIds = function deleteMessageIds(userId, messageIds, callback) {
+  let conditions = {
+      userId: userId,
+      messageId: {
+          "$in": messageIds
+      }
+  };
+  
+  MessageId.deleteMany(conditions, (err, res) => {
+    callback(err, res);
+  });
 }
 
 exports.unsubscribeSenderFromMongo = function unsubscribeSender(userId, senderId, callback) {
@@ -91,33 +92,15 @@ exports.findSenderAddress = function(userId, senderId, callback) {
   })
 }
 
-exports.lockActionsPipeline = function(userId, callback) {
-  let conditions = { userId: userId }
-  let update = {
-    actionsLock: true
-  }
-  LoadingStatus.updateOne(conditions, update, (err, res) => {
-    callback(err, res);
-  });
-}
-
-exports.unlockActionsPipeline = function(userId, callback) {
-  let conditions = { userId: userId }
-  let update = {
-    actionsLock: false
-  }
-  LoadingStatus.updateOne(conditions, update, (err, res) => {
-    callback(err, res);
-  });
-}
-
-exports.checkActionsLock = function(userId, callback) {
-  let conditions = { userId: userId }
-  let projection = {
-    actionsLock: 1,
-    _id: 0
-  }
-  LoadingStatus.findOne(conditions, projection, (err, res) => {
-    callback(err, res);
-  });
-}
+/* exports.deleteThreadIds = function deleteThreadIds(userId, threadIds, callback) {
+  let conditions = {
+      userId: userId,
+      threadId: {
+          "$in": threadIds
+      }
+  };
+  
+  ThreadId.deleteMany(conditions, (err, res) => {
+      callback(err, res);
+  })
+} */

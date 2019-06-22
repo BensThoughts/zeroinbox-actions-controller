@@ -159,7 +159,7 @@ function httpPostLabelPromise(url, access_token, labelName) {
   }
 
 
-  exports.httpPostLabelRequest = function(access_token, labelName) {
+  exports.httpCreateLabelRequest = function(access_token, labelName) {
     let url = GMAIL_LABEL_ENDPOINT;
     let retries = GAPI_MAX_RETRIES;
     let delay = GAPI_INIT_RETRY_DELAY;
@@ -179,7 +179,7 @@ function httpPostLabelPromise(url, access_token, labelName) {
     return retryHttpRequest(promiseCreator, retries, delay, delayMultiplier);
   }
 
-  exports.httpPostFilterRequest = function(access_token, labelId, senderAddress) {
+  exports.httpCreateFilterRequest = function(access_token, labelId, senderAddress) {
     let url = GMAIL_FILTER_ENDPOINT;
     let retries = GAPI_MAX_RETRIES;
     let delay = GAPI_INIT_RETRY_DELAY;
