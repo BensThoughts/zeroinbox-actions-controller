@@ -41,6 +41,16 @@ if (RABBIT_HOSTNAME) {
     }
 }
 
+const rabbit_topology = {
+  channels: {
+    listen: 'actions.listen.1'
+  },
+  queues: {
+    actions: 'actions.do-actions.actions.q.1'
+  }
+}
+
 module.exports = {
-    rabbit_config
+    rabbit_config,
+    rabbit_topology
 }

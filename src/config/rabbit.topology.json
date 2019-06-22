@@ -1,50 +1,26 @@
 {
     "exchanges" : [
-        {
-            "channel": "actions.1",
-            "name": "actions.userIds.ex.1",
-            "type": "direct",
-            "options": {}
-        },
-        {
-            "channel": "actions.1",
-            "name": "actions.topic.ex.1",
-            "type": "topic",
-            "options": {}
-        },
-        {
-          "channel": "actions.1",
-          "name": "actions.direct.ex.1",
-          "type": "direct",
-          "options": {}
-        }
+      {
+        "channel": "actions.listen.1",
+        "name": "api.do-actions.actions.direct.ex.1",
+        "type": "direct",
+        "options": {}
+      }
     ],
     "queues": [
-        {
-            "channel": "actions.1",
-            "name": "actions.userIds.q.1",
-            "options": { "autoDelete": false }
-        },
-        {
-          "channel": "actions.1",
-          "name": "actions.direct.q.1",
-          "options": { "autoDelete": false }
-        }
+      {
+        "channel": "actions.listen.1",
+        "name": "actions.do-actions.actions.q.1",
+        "options": { "autoDelete": false }
+      }
     ],
     "bindings": [
-        {
-            "channel": "actions.1",
-            "queue": "actions.userIds.q.1",
-            "exchange": "actions.userIds.ex.1",
-            "key": "",
-            "options": {}
-        },
-        {
-          "channel": "actions.1",
-          "queue": "actions.direct.q.1",
-          "exchange": "actions.direct.ex.1",
-          "key": "",
-          "options": {}
-        }
+      {
+        "channel": "actions.listen.1",
+        "queue": "actions.do-actions.actions.q.1",
+        "exchange": "api.do-actions.actions.direct.ex.1",
+        "key": "",
+        "options": {}
+      }
     ]
 }
