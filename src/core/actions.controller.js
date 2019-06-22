@@ -68,9 +68,9 @@ function labelSender(actionsMsg) {
   let senderId = actionsObj.senderId;
 
 
-  findSendersMessageIds(userId, senderId, (err, messageIds) => {
-      if (err) {
-        logger.error(err);
+  findSendersMessageIds(userId, senderId, (mongoErr, messageIds) => {
+      if (mongoErr) {
+        logger.error(userId + ' - ' + mongoErr);
         ackMessage(actionsMsg);
       } else {
         httpGetLabelsRequest(access_token).then( async (labelsResponse) => {
@@ -91,7 +91,7 @@ function labelSender(actionsMsg) {
               await httpCreateLabelRequest(access_token, categoryLabelName).then((categoryLabelResponse) => {
                 categoryLabelId = categoryLabelResponse.id;
                 logger.trace(userId + ' - Label Created: ' + categoryLabelResponse);
-              }).catch((err) => logger.error(userId + ' - Error: ' + err));
+              }).catch((httpErr) => logger.error(userId + ' - Error: ' + JSON.stringify(httpErr)));
             } else {
               categoryLabelId = labelsResponse.labels[categoryLabelIndex].id;
             }
@@ -106,7 +106,7 @@ function labelSender(actionsMsg) {
             await httpCreateLabelRequest(access_token, userLabelName).then((userLabelResponse) => {
               userLabelId = userLabelResponse.id;
               logger.trace(userId + ' - Label Created: ' + userLabelResponse);
-            }).catch((err) => logger.error(err));
+            }).catch((httpErr) => logger.error(userId + ' - Error: ' + JSON.stringify(httpErr)));
           } else {
             userLabelId = labelsResponse.labels[userLabelIndex].id;
           }
@@ -123,47 +123,46 @@ function labelSender(actionsMsg) {
               let batchChunks = chunkIds(messageIdChunks, [], BATCHELOR_BATCH_SIZE); // for safety just do one item batches
 
               await asyncForEach(batchChunks, async (batchChunk) => {
-                  let batchResult = await createBatchLabelRequest(batchChunk, access_token, labelIds).catch((err) => {
-                      logger.error(err);
+                  let batchResult = await createBatchLabelRequest(batchChunk, access_token, labelIds).catch((batchErr) => {
+                      logger.error(userId + ' - ' + JSON.stringify(batchErr));
                   });
                   logger.trace(userId + ' - Batch Label Results: ' + JSON.stringify(batchResult));
               });
   
               ackMessage(actionsMsg);
-              deleteSender(userId, senderId, (err, res) => {
-                if (err) return logger.error(err);
+              deleteSender(userId, senderId, (mongoErr, res) => {
+                if (err) return logger.error(userId + ' - ' + mongoErr);
                 logger.trace(userId + ' - Sender deleted: ' + senderId);
               });
   
-              deleteMessageIds(userId, messageIds, (err, res) => {
-                if (err) return logger.error(userId + ' - ' + err);
+              deleteMessageIds(userId, messageIds, (mongoErr, res) => {
+                if (err) return logger.error(userId + ' - ' + mongoErr);
                 logger.trace(userId + ' - Message Ids deleted: ' + messageIds.length);
               });
           }
   
-          startBatchProcess().catch((err) => {
+          startBatchProcess().catch((batchErr) => {
               ackMessage(actionsMsg);
-              logger.error(err);
-          })
+              logger.error(userId + ' - Error: ' + JSON.stringify(batchErr));
+          });
     
   
-        }).catch((err) => {
+        }).catch((httpErr) => {
             ackMessage(actionsMsg);
-            logger.error(err)
+            logger.error(userId + ' - Error: ' + JSON.stringify(httpErr));
         });
       }
-    
-  })
+  });
 }
 
 function createFilters(userId, access_token, labelIds, senderId) {
   findSenderAddress(userId, senderId, (err, senderAddress) => {
-    if (err) return logger.error(userId + ' - ' + err);
+    if (mongoErr) return logger.error(userId + ' - ' + mongoErr);
     labelIds.forEach((labelId) => {
       httpCreateFilterRequest(access_token, labelId, senderAddress).then((response) => {
         logger.trace(userId + ' - Filter created response: ' + JSON.stringify(response));
-      }).catch((err) => {
-        logger.error(userId + ' - ' + err);
+      }).catch((httpErr) => {
+        logger.error(userId + ' - ' + JSON.stringify(httpErr));
       });
     });
   });
@@ -176,34 +175,34 @@ function trashSender(actionsMsg) {
   let access_token = actionsObj.access_token;
   let senderId = actionsObj.senderId;
 
-  findSendersMessageIds(userId, senderId, (err, messageIds) => {
-
+  findSendersMessageIds(userId, senderId, (mongoErr, messageIds) => {
+    if (mongoErr) return logger.error(userId + ' - ' + mongoError);
     const startBatchProcess = async () => {
       let messageIdChunks = chunkIds(messageIds, [], GMAIL_BATCH_MODIFY_SIZE);
       let batchChunks = chunkIds(messageIdChunks, [], BATCHELOR_BATCH_SIZE);
       await asyncForEach(batchChunks, async (batchChunk) => {
-          let batchResult = await createBatchTrashRequest(batchChunk, access_token).catch((err) => {
-              logger.error(userId + ' - ' + err);
+          let batchResult = await createBatchTrashRequest(batchChunk, access_token).catch((batchErr) => {
+              logger.error(userId + ' - ' + batchErr);
           });
           logger.trace(userId + ' - Batch Trash Results: ' + JSON.stringify(batchResult));
       });
 
       ackMessage(actionsMsg);
 
-      deleteSender(userId, senderId, (err, res) => {
-          if (err) return logger.error(userId + ' - ' + err);
+      deleteSender(userId, senderId, (mongoErr, res) => {
+          if (err) return logger.error(userId + ' - ' + mongoErr);
           logger.trace(userId + ' - Sender deleted: ' + senderId);
       });
 
-      deleteMessageIds(userId, messageIds, (err, res) => {
-          if (err) return logger.error(userId + ' - ' + err);
+      deleteMessageIds(userId, messageIds, (mongoErr, res) => {
+          if (err) return logger.error(userId + ' - ' + mongoErr);
           logger.trace(userId + ' - Message Ids deleted: ' + messageIds.length);
       });
     }
 
-    startBatchProcess().catch(error => {
+    startBatchProcess().catch(batchError => {
       ackMessage(actionsMsg);
-      logger.error(error);
+      logger.error(userId + ' - ' + batchError);
     });
   });
 }
@@ -224,18 +223,20 @@ async function unsubscribeSender(actionsMsg) {
     metadata = cleanSender(unsubscribeEmail);    
 
     httpSendMessageRequest(access_token, metadata.to, metadata.subject).then((response) => {
-      unsubscribeSenderFromMongo(userId, senderId, (err, mongoResponse) => {
-        if (err) logger.error(userId + ' - ' + err);
+      logger.trace(userId + ' - Sent Unsubscribe Request: ' + JSON.stringify(metadata));
+      unsubscribeSenderFromMongo(userId, senderId, (mongoErr, mongoResponse) => {
+        if (mongoErr) logger.error(userId + ' - ' + err);
         logger.trace(userId + ' - Unsubscribe Sender From Mongo: ' + senderId);
       });
       ackMessage(actionsMsg);
-    }).catch((error) => {
+    }).catch((httpError) => {
+      logger.error(userId + ' - ' + JSON.stringify(httpError));
       ackMessage(actionsMsg)
     });
 
   } else {
-    unsubscribeSenderFromMongo(userId, senderId, (err, response) => {
-      if (err) return logger.error(userId + ' - ' + err);
+    unsubscribeSenderFromMongo(userId, senderId, (mongoErr, response) => {
+      if (err) return logger.error(userId + ' - ' + mongoErr);
       logger.trace(userId + ' - Unsubscribe Sender From Mongo: ' + senderId);
     });
     ackMessage(actionsMsg);
@@ -267,9 +268,6 @@ function cleanSender(unsubscribeEmail) {
   } else {
     to = unsubscribeEmail;
   }
-
-  logger.trace('To: ' + to);
-  logger.trace('Subject: ' + subject);
 
   return {
     to: to,

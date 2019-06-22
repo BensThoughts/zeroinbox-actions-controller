@@ -16,7 +16,6 @@ function retryHttpRequest(promiseCreator, retries, delay, delayMultiplier) {
         .then(resolve)
         .catch((err) => {
           if (retries == 0) {
-            logger.error('Error inside retryHttpRequest: ' + err);
             reject(err);
           } else {
             let retryFunc = function() {
@@ -51,9 +50,11 @@ function httpPostLabelPromise(url, access_token, labelName) {
           // logger.trace(JSON.stringify(body));
           resolve(body);
         } else {
-          logger.error('Error contacting ' + url + ': ' + error);
-          logger.error('Error body for httpPostLabelPromise: ' + JSON.stringify(body));
-          reject(error);
+          let errorResponse = {
+            errorUrl: 'POST - Error contacting ' + url,
+            errorBody: JSON.stringify(body)
+          }
+          reject(errorResponse);
         }
       })
     });
@@ -73,9 +74,11 @@ function httpPostLabelPromise(url, access_token, labelName) {
         if (!error) {
           resolve(JSON.parse(body));
         } else {
-          logger.error('Error contacting ' + url + ': ' + error);
-          logger.error('Error body for httpGetLabelsPromise: ' + JSON.stringify(body));
-          reject(error);
+          let errorResponse = {
+            errorUrl: 'GET - Error contacting ' + url + ': ' + error,
+            errorBody: JSON.stringify(body)
+          }
+          reject(errorResponse);
         }
       })
     });
@@ -104,9 +107,11 @@ function httpPostLabelPromise(url, access_token, labelName) {
         if (!error && response.statusCode == 200) {
           resolve(body);
         } else {
-          logger.error('Error contacting ' + url + ': ' + error);
-          logger.error('Error body for httpPostFilterPromise: ' + JSON.stringify(body));
-          reject(error);
+          let errorResponse = {
+            errorUrl: 'POST - Error contacting ' + url,
+            errorBody: JSON.stringify(body)
+          }
+          reject(errorResponse);
         }
       })
     });
@@ -140,8 +145,11 @@ function httpPostLabelPromise(url, access_token, labelName) {
         if (!error) {
           resolve(body);
         } else {
-          logger.error('Error contacting ' + url + ': ' + JSON.stringify(error));
-          reject(error);
+          let errorResponse = {
+            errorUrl: 'POST - Error contacting ' + url + ': ' + error,
+            errorBody: JSON.stringify(body)
+          }
+          reject(errorResponse);
         }
       })
     });
