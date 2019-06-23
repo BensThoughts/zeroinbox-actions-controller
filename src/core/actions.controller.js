@@ -84,7 +84,7 @@ function labelSender(actionsMsg) {
             userLabelName = categoryLabelName + '/' + userLabelName
 
             let categoryLabelIndex = labelsResponse.labels.findIndex((label) => {
-              return label.name === categoryLabelName;
+              return label.name.toLowerCase() === categoryLabelName.toLowerCase();
             });
               
             if (categoryLabelIndex === -1) {
@@ -100,7 +100,7 @@ function labelSender(actionsMsg) {
           }
   
           let userLabelIndex = labelsResponse.labels.findIndex((label) => {
-            return label.name === userLabelName;
+            return label.name.toLowerCase() === userLabelName.toLowerCase();
           });
           if (userLabelIndex === -1) {
             await httpCreateLabelRequest(access_token, userLabelName).then((userLabelResponse) => {
@@ -156,7 +156,7 @@ function labelSender(actionsMsg) {
 }
 
 function createFilters(userId, access_token, labelIds, senderId) {
-  findSenderAddress(userId, senderId, (err, senderAddress) => {
+  findSenderAddress(userId, senderId, (mongoErr, senderAddress) => {
     if (mongoErr) return logger.error(userId + ' - ' + mongoErr);
     labelIds.forEach((labelId) => {
       httpCreateFilterRequest(access_token, labelId, senderAddress).then((response) => {
