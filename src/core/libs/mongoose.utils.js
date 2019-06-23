@@ -16,10 +16,8 @@ exports.findSendersMessageIds = function findSendersMessageIds(userId, senderId,
     }
 
     Sender.findOne(conditions, projection, (err, res) => {
-        if (err) {
-            logger.error(err);
-            return callback(err, res);
-        }
+        if (err) return callback(err, res);
+      
         if (res !== null) {
             // let threadIds = res.threadIdsOriginating;
             let messageIds = res.messageIds;
@@ -86,21 +84,7 @@ exports.findSenderAddress = function(userId, senderId, callback) {
       callback(err, senderAddress);
     } else {
       let findError = 'senderId not found or no senderAddress at Sender.findOne() in findSenderAddress()';
-      logger.error(findError);
       callback(findError, null);
     }
   })
 }
-
-/* exports.deleteThreadIds = function deleteThreadIds(userId, threadIds, callback) {
-  let conditions = {
-      userId: userId,
-      threadId: {
-          "$in": threadIds
-      }
-  };
-  
-  ThreadId.deleteMany(conditions, (err, res) => {
-      callback(err, res);
-  })
-} */

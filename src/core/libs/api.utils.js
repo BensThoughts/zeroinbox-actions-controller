@@ -45,9 +45,7 @@ function httpPostLabelPromise(url, access_token, labelName) {
 
     return new Promise((resolve, reject) => {
       request.post(options, (error, response, body) => {
-        // logger.debug('response : ' + response);
         if (!error) {
-          // logger.trace(JSON.stringify(body));
           resolve(body);
         } else {
           let errorResponse = {
@@ -70,7 +68,6 @@ function httpPostLabelPromise(url, access_token, labelName) {
 
     return new Promise((resolve, reject) => {
       request.get(options, (error, response, body) => {
-        // logger.debug('response : ' + response);
         if (!error) {
           resolve(JSON.parse(body));
         } else {

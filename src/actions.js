@@ -21,29 +21,27 @@ KubeHealthCheck.get('/healthz', (req, res, next) => {
 });
 
 mongoose.connect(MONGO_URI, { useNewUrlParser: true }, (err, db) => {
-  if (err) {
-    logger.error('Error at mongoose.connect(): ' + err);
-  } else {
-    logger.info('Connected to MongoDB!');
-      
-    rabbit.connect(rabbit_config, (err, conn) => {
-      logger.info('Connected to RabbitMQ!');
+  if (err) return logger.error('Error at mongoose.connect(): ' + err);
 
-      rabbit.setChannelPrefetch(rabbit_topology.channels.listen, 1);
+  logger.info('Connected to MongoDB!');  
+  rabbit.connect(rabbit_config, (err, conn) => {
+    if (err) return logger.error(err);
 
-      let actionsQueue = rabbit_topology.queues.actions;
-      rabbit.consume(rabbit_topology.channels.listen, actionsQueue, (actionsMsg) => {
-        let actionsObj = actionsMsg.content;
-        let userId = actionsObj.userId;
-        logger.trace(userId + ' - New actions message: ' + JSON.stringify(actionsObj));
-          actionsController(actionsMsg);
-      }, { noAck: false });
+    logger.info('Connected to RabbitMQ!');
+    rabbit.setChannelPrefetch(rabbit_topology.channels.listen, 1);
 
-      let server = KubeHealthCheck.listen(ACTIONS_HEALTH_PORT, ACTIONS_HEALTH_HOST);
-      processHandler(server);
-      logger.info(`Running health check on http://${ACTIONS_HEALTH_HOST}:${ACTIONS_HEALTH_PORT}`);
-    });
-  }
+    let actionsQueue = rabbit_topology.queues.actions;
+    rabbit.consume(rabbit_topology.channels.listen, actionsQueue, (actionsMsg) => {
+      let actionsObj = actionsMsg.content;
+      let userId = actionsObj.userId;
+      logger.trace(userId + ' - New actions message: ' + JSON.stringify(actionsObj));
+        actionsController(actionsMsg);
+    }, { noAck: false });
+
+    let server = KubeHealthCheck.listen(ACTIONS_HEALTH_PORT, ACTIONS_HEALTH_HOST);
+    processHandler(server);
+    logger.info(`Running health check on http://${ACTIONS_HEALTH_HOST}:${ACTIONS_HEALTH_PORT}`);
+  });
 });
 
 
@@ -63,15 +61,14 @@ function processHandler(server) {
 
 const shutdown = (server, signal, value) => {
   logger.info('shutdown!');
-    logger.info(`Server stopped by ${signal} with value ${value}`);
-    rabbit.disconnect(() => {
-      logger.info('Rabbit disconnected!');
-      mongoose.disconnect((error) => {
-
-      });
-      server.close(() => {
-
-      })
+  logger.info(`Service stopped by ${signal} with value ${value}`);
+  rabbit.disconnect(() => {
+    logger.info('Rabbit disconnected!');
+    mongoose.disconnect((error) => {
       logger.info('Mongo disconnected!')
     });
+    server.close(() => {
+      logger.info('Express health server closed!');
+    })
+  });
 };

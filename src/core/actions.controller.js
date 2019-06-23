@@ -54,7 +54,7 @@ function actionsController(actionsMsg) {
             return;
 
         default:
-            logger.error('Action was not one of delete, label, or unsubscribe');
+            logger.error(userId + ' - Action was not one of delete, label, or unsubscribe');
             ackMessage(actionsMsg);
     }
  
@@ -253,14 +253,8 @@ function cleanSender(unsubscribeEmail) {
     unsubscribeEmail = unsubscribeEmail.slice(mailtoIndex + 7);
   }
 
-  // find the .com and get the sender (should be 0 to the end of .com)
-  // let toIndex = unsubscribeEmail.search(/\.com/i);
-  // logger.trace(toIndex);
-  // to = unsubscribeEmail.slice(0, toIndex + 4);
-
-  // find out if there is a subject query line (should be ?subject='' and should come right after .com)
+  // find out if there is a subject query line (should be ?subject='' and should come right after .com, .net, ..etc.)
   let subjectIndex = unsubscribeEmail.search(/\?subject=/i);
-
 
   if (subjectIndex != -1) {
     subject = unsubscribeEmail.slice(subjectIndex + 9);

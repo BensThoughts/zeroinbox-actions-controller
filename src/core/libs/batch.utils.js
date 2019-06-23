@@ -92,7 +92,6 @@ function createBatchTrashRequest(batchChunk, access_token) {
   return new Promise((resolve, reject) => {
     batch.run((err, response) => {
       if (err) {
-        logger.error("Error: " + err);
         reject(err);
       } else {
         resolve(response);
@@ -129,7 +128,6 @@ function createBatchTrashRequest(batchChunk, access_token) {
     return new Promise((resolve, reject) => {
       batch.run((err, response) => {
         if (err) {
-          logger.error("Error: " + err);
           reject(err);
         } else {
           resolve(response);
