@@ -1,19 +1,17 @@
-const mongoose = require('mongoose');
 const logger = require('./loggers/log4js');
-
+const mongoose = require('mongoose');
 const rabbit = require('zero-rabbit');
 const { 
   rabbit_config,
   rabbit_topology
 } = require('./config/rabbit.config');
 
-
 const actionsController = require('./core/actions.controller');
 
 const { 
-  mongo_uri,
-  actions_health_host,
-  actions_health_port
+  MONGO_URI,
+  ACTIONS_HEALTH_HOST,
+  ACTIONS_HEALTH_PORT
 } = require('./config/init.config');
 
 const express = require('express');
@@ -22,8 +20,7 @@ KubeHealthCheck.get('/healthz', (req, res, next) => {
   res.status(200).send();
 });
 
-
-mongoose.connect(mongo_uri, { useNewUrlParser: true }, (err, db) => {
+mongoose.connect(MONGO_URI, { useNewUrlParser: true }, (err, db) => {
   if (err) {
     logger.error('Error at mongoose.connect(): ' + err);
   } else {
@@ -42,9 +39,9 @@ mongoose.connect(mongo_uri, { useNewUrlParser: true }, (err, db) => {
           actionsController(actionsMsg);
       }, { noAck: false });
 
-      let server = KubeHealthCheck.listen(actions_health_port, actions_health_host);
+      let server = KubeHealthCheck.listen(ACTIONS_HEALTH_PORT, ACTIONS_HEALTH_HOST);
       processHandler(server);
-      logger.info(`Running health check on http://${actions_health_host}:${actions_health_port}`);
+      logger.info(`Running health check on http://${ACTIONS_HEALTH_HOST}:${ACTIONS_HEALTH_PORT}`);
     });
   }
 });
