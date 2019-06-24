@@ -90,7 +90,7 @@ function labelSender(actionsMsg) {
             if (categoryLabelIndex === -1) {
               await httpCreateLabelRequest(access_token, categoryLabelName).then((categoryLabelResponse) => {
                 categoryLabelId = categoryLabelResponse.id;
-                logger.trace(userId + ' - Label Created: ' + categoryLabelResponse);
+                logger.trace(userId + ' - Label Created Response: ' + JSON.stringify(categoryLabelResponse));
               }).catch((httpErr) => logger.error(userId + ' - Error: ' + JSON.stringify(httpErr)));
             } else {
               categoryLabelId = labelsResponse.labels[categoryLabelIndex].id;
