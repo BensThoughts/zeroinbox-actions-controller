@@ -10,7 +10,7 @@
     "test": "./node_modules/mocha/bin/_mocha ./src/**/*.spec.js --exit",
     "unit": "./node_modules/mocha/bin/_mocha ./src/**/unit/*.spec.js --exit",
     "integration": "./node_modules/mocha/bin/_mocha ./src/**/integration/*.spec.js --exit",
-    "start": "nodemon /usr/src/app/src/actions.js",
+    "start:nodemon": "nodemon /usr/src/app/src/actions.js",
     "start:dev": "cd ./src && nodemon --inspect-brk=0.0.0.0 actions.js",
     "dev": "cd ./src && node batch.js"
   },
