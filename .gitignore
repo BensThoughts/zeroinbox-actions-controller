@@ -48,6 +48,7 @@ logs/debug.log
 logs/debug.log
 logs/info.log
 
+.env
+
 deploy.env
-docker.sh
 docker.sh
