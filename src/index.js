@@ -28,11 +28,19 @@ KubeHealthCheck.get('/healthz', (req, res, next) => {
 });
 
 mongoose.connect(MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true }, (err, db) => {
-  if (err) return logger.error('Error at mongoose.connect(): ' + err);
+  if (err) {
+    throw new Error('Error in mongoose.connect(): ' + err);
+  }
 
   logger.info('Connected to MongoDB!');  
   rabbit.connect(rabbit_config, (err, conn) => {
-    if (err) return logger.error(err);
+    if (err) {
+      throw new Error('Error in rabbit.connect(): ' + err);
+    };
+
+    let server = KubeHealthCheck.listen(ACTIONS_HEALTH_PORT, ACTIONS_HEALTH_HOST);
+    processHandler(server);
+    logger.info(`Running health check on http://${ACTIONS_HEALTH_HOST}:${ACTIONS_HEALTH_PORT}`);
 
     logger.info('Connected to RabbitMQ!');
     rabbit.setChannelPrefetch(rabbit_topology.channels.listen, 1);
@@ -50,15 +58,16 @@ mongoose.connect(MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true },
 
 
 // Graceful shutdown SIG handling
-const signals= {
-  'SIGTERM': 15
-}
-
-let server = KubeHealthCheck.listen(ACTIONS_HEALTH_PORT, ACTIONS_HEALTH_HOST);
-processHandler(server);
-logger.info(`Running health check on http://${ACTIONS_HEALTH_HOST}:${ACTIONS_HEALTH_PORT}`);
-
 function processHandler(server) {
+  const signals = {
+    'SIGHUP': 1,
+    'SIGINT': 2,
+    'SIGQUIT': 3,
+    'SIGABRT': 6,
+    // 'SIGKILL': 9, // doesn't work
+    'SIGTERM': 15,
+  };
+
   Object.keys(signals).forEach((signal) => {
     process.on(signal, () => {
       logger.info(`Process received a ${signal} signal`);
