@@ -45,9 +45,6 @@ mongoose.connect(MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true },
         actionsController(actionsMsg);
     }, { noAck: false });
 
-    let server = KubeHealthCheck.listen(ACTIONS_HEALTH_PORT, ACTIONS_HEALTH_HOST);
-    processHandler(server);
-    logger.info(`Running health check on http://${ACTIONS_HEALTH_HOST}:${ACTIONS_HEALTH_PORT}`);
   });
 });
 
@@ -56,6 +53,10 @@ mongoose.connect(MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true },
 const signals= {
   'SIGTERM': 15
 }
+
+let server = KubeHealthCheck.listen(ACTIONS_HEALTH_PORT, ACTIONS_HEALTH_HOST);
+processHandler(server);
+logger.info(`Running health check on http://${ACTIONS_HEALTH_HOST}:${ACTIONS_HEALTH_PORT}`);
 
 function processHandler(server) {
   Object.keys(signals).forEach((signal) => {
