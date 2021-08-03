@@ -60,17 +60,17 @@ function chunkIds(array, result, chunkSize) {
  *  creates the batch request with 'format=metadata'
  *
  * @param  {Array<string>} subArray     Array of threadIds
- * @param  {string} access_token        The users google access_token
+ * @param  {string} accessToken        The users google accessToken
  * @return {Promise}                    The actual batch request to be executed
  */
 
-function createBatchTrashRequest(batchChunk, access_token) {
+function createBatchTrashRequest(batchChunk, accessToken) {
   var batch = new Batchelor({
     'uri': GMAIL_BATCH_ENDPOINT,
     'method': 'POST',
     'headers': {
       'Content-Type': 'multipart/mixed',
-      'Authorization': 'Bearer ' + access_token
+      'Authorization': 'Bearer ' + accessToken
     }
   });
   
@@ -100,13 +100,13 @@ function createBatchTrashRequest(batchChunk, access_token) {
   });
 }
 
-  function createBatchLabelRequest(batchChunk, access_token, labelIds) {
+  function createBatchLabelRequest(batchChunk, accessToken, labelIds) {
     var batch = new Batchelor({
       'uri': GMAIL_BATCH_ENDPOINT,
       'method': 'POST',
       'headers': {
         'Content-Type': 'multipart/mixed',
-        'Authorization': 'Bearer ' + access_token
+        'Authorization': 'Bearer ' + accessToken
       }
     });
     

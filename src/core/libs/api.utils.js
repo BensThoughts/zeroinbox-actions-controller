@@ -29,11 +29,11 @@ function retryHttpRequest(promiseCreator, retries, delay, delayMultiplier) {
       });
 }
 
-function httpPostLabelPromise(url, access_token, labelName) {
+function httpPostLabelPromise(url, accessToken, labelName) {
     const options = {
       url: url,
       headers: {
-        'Authorization': 'Bearer ' + access_token
+        'Authorization': 'Bearer ' + accessToken
       },
       body: {
         labelListVisibility: 'labelShow',
@@ -58,11 +58,11 @@ function httpPostLabelPromise(url, access_token, labelName) {
     });
   }
 
-  function httpGetLabelsPromise(url, access_token) {
+  function httpGetLabelsPromise(url, accessToken) {
     const options = {
       url: url,
       headers: {
-        'Authorization': 'Bearer ' + access_token
+        'Authorization': 'Bearer ' + accessToken
       },
     };
 
@@ -81,11 +81,11 @@ function httpPostLabelPromise(url, access_token, labelName) {
     });
   }
 
-  function httpPostFilterPromise(url, access_token, labelId, senderAddress) {
+  function httpPostFilterPromise(url, accessToken, labelId, senderAddress) {
     const options = {
       url: url,
       headers: {
-        'Authorization': 'Bearer ' + access_token
+        'Authorization': 'Bearer ' + accessToken
       },
       body: {
         criteria: {
@@ -114,7 +114,7 @@ function httpPostLabelPromise(url, access_token, labelName) {
     });
   }
   
-  function httpSendEmailPromise(url, access_token, to, subject) {
+  function httpSendEmailPromise(url, accessToken, to, subject) {
 
     function makeBody(to, subject, message) {
       let str = ["to: ", to, "\n",
@@ -131,7 +131,7 @@ function httpPostLabelPromise(url, access_token, labelName) {
       url: url,
       // method: 'POST',
       headers: {
-        'Authorization': 'Bearer ' + access_token,
+        'Authorization': 'Bearer ' + accessToken,
         'Content-Type': 'message/rfc822'
       },
       body: raw
@@ -153,43 +153,43 @@ function httpPostLabelPromise(url, access_token, labelName) {
 
   }
 
-  exports.httpSendMessageRequest = function(access_token, to, subject) {
+  exports.httpSendMessageRequest = function(accessToken, to, subject) {
     let url = GMAIL_MESSAGE_SEND_ENDPOINT;
     let retries = GAPI_MAX_RETRIES;
     let delay = GAPI_INIT_RETRY_DELAY;
     let delayMultiplier = GAPI_DELAY_MULTIPLIER;
-    let promiseCreator = () => httpSendEmailPromise(url, access_token, to, subject);
+    let promiseCreator = () => httpSendEmailPromise(url, accessToken, to, subject);
 
     return retryHttpRequest(promiseCreator, retries, delay, delayMultiplier);
   }
 
 
-  exports.httpCreateLabelRequest = function(access_token, labelName) {
+  exports.httpCreateLabelRequest = function(accessToken, labelName) {
     let url = GMAIL_LABEL_ENDPOINT;
     let retries = GAPI_MAX_RETRIES;
     let delay = GAPI_INIT_RETRY_DELAY;
     let delayMultiplier = GAPI_DELAY_MULTIPLIER;
-    let promiseCreator = () => httpPostLabelPromise(url, access_token, labelName);
+    let promiseCreator = () => httpPostLabelPromise(url, accessToken, labelName);
   
     return retryHttpRequest(promiseCreator, retries, delay, delayMultiplier);
   }
 
-  exports.httpGetLabelsRequest = function(access_token) {
+  exports.httpGetLabelsRequest = function(accessToken) {
     let url = GMAIL_LABEL_ENDPOINT;
     let retries = GAPI_MAX_RETRIES;
     let delay = GAPI_INIT_RETRY_DELAY;
     let delayMultiplier = GAPI_DELAY_MULTIPLIER;
-    let promiseCreator = () => httpGetLabelsPromise(url, access_token);
+    let promiseCreator = () => httpGetLabelsPromise(url, accessToken);
     
     return retryHttpRequest(promiseCreator, retries, delay, delayMultiplier);
   }
 
-  exports.httpCreateFilterRequest = function(access_token, labelId, senderAddress) {
+  exports.httpCreateFilterRequest = function(accessToken, labelId, senderAddress) {
     let url = GMAIL_FILTER_ENDPOINT;
     let retries = GAPI_MAX_RETRIES;
     let delay = GAPI_INIT_RETRY_DELAY;
     let delayMultiplier = GAPI_DELAY_MULTIPLIER;
-    let promiseCreator = () => httpPostFilterPromise(url, access_token, labelId, senderAddress);
+    let promiseCreator = () => httpPostFilterPromise(url, accessToken, labelId, senderAddress);
 
     return retryHttpRequest(promiseCreator, retries, delay, delayMultiplier);
   }

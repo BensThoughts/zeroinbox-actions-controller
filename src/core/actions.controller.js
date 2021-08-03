@@ -64,7 +64,7 @@ function labelSender(actionsMsg) {
   let actionsObj = actionsMsg.content;
 
   let userId = actionsObj.userId;
-  let access_token = actionsObj.access_token;
+  let accessToken = actionsObj.accessToken;
   let senderId = actionsObj.senderId;
 
 
@@ -73,7 +73,7 @@ function labelSender(actionsMsg) {
         logger.error(userId + ' - ' + mongoErr);
         ackMessage(actionsMsg);
       } else {
-        httpGetLabelsRequest(access_token).then( async (labelsResponse) => {
+        httpGetLabelsRequest(accessToken).then( async (labelsResponse) => {
           let categoryLabelName = actionsObj.category;
           let categoryLabelId = '';
           let userLabelName = actionsObj.labelName;
@@ -88,7 +88,7 @@ function labelSender(actionsMsg) {
             });
               
             if (categoryLabelIndex === -1) {
-              await httpCreateLabelRequest(access_token, categoryLabelName).then((categoryLabelResponse) => {
+              await httpCreateLabelRequest(accessToken, categoryLabelName).then((categoryLabelResponse) => {
                 categoryLabelId = categoryLabelResponse.id;
                 logger.trace(userId + ' - Label Created Response: ' + JSON.stringify(categoryLabelResponse));
               }).catch((httpErr) => logger.error(userId + ' - Error: ' + JSON.stringify(httpErr)));
@@ -103,7 +103,7 @@ function labelSender(actionsMsg) {
             return label.name.toLowerCase() === userLabelName.toLowerCase();
           });
           if (userLabelIndex === -1) {
-            await httpCreateLabelRequest(access_token, userLabelName).then((userLabelResponse) => {
+            await httpCreateLabelRequest(accessToken, userLabelName).then((userLabelResponse) => {
               userLabelId = userLabelResponse.id;
               logger.trace(userId + ' - Label Created: ' + userLabelResponse);
             }).catch((httpErr) => logger.error(userId + ' - Error: ' + JSON.stringify(httpErr)));
@@ -115,7 +115,7 @@ function labelSender(actionsMsg) {
 
           let filter = actionsObj.filter;
           if (filter) {
-            createFilters(userId, access_token, labelIds, senderId);
+            createFilters(userId, accessToken, labelIds, senderId);
           }
 
           const startBatchProcess = async () => {
@@ -123,7 +123,7 @@ function labelSender(actionsMsg) {
               let batchChunks = chunkIds(messageIdChunks, [], BATCHELOR_BATCH_SIZE); // for safety just do one item batches
 
               await asyncForEach(batchChunks, async (batchChunk) => {
-                  let batchResult = await createBatchLabelRequest(batchChunk, access_token, labelIds).catch((batchErr) => {
+                  let batchResult = await createBatchLabelRequest(batchChunk, accessToken, labelIds).catch((batchErr) => {
                       logger.error(userId + ' - ' + JSON.stringify(batchErr));
                   });
                   logger.trace(userId + ' - Batch Label Results: ' + JSON.stringify(batchResult));
@@ -155,11 +155,11 @@ function labelSender(actionsMsg) {
   });
 }
 
-function createFilters(userId, access_token, labelIds, senderId) {
+function createFilters(userId, accessToken, labelIds, senderId) {
   findSenderAddress(userId, senderId, (mongoErr, senderAddress) => {
     if (mongoErr) return logger.error(userId + ' - ' + mongoErr);
     labelIds.forEach((labelId) => {
-      httpCreateFilterRequest(access_token, labelId, senderAddress).then((response) => {
+      httpCreateFilterRequest(accessToken, labelId, senderAddress).then((response) => {
         logger.trace(userId + ' - Filter created response: ' + JSON.stringify(response));
       }).catch((httpErr) => {
         logger.error(userId + ' - ' + JSON.stringify(httpErr));
@@ -172,7 +172,7 @@ function trashSender(actionsMsg) {
   let actionsObj = actionsMsg.content;
 
   let userId = actionsObj.userId;
-  let access_token = actionsObj.access_token;
+  let accessToken = actionsObj.accessToken;
   let senderId = actionsObj.senderId;
 
   findSendersMessageIds(userId, senderId, (mongoErr, messageIds) => {
@@ -181,7 +181,7 @@ function trashSender(actionsMsg) {
       let messageIdChunks = chunkIds(messageIds, [], GMAIL_BATCH_MODIFY_SIZE);
       let batchChunks = chunkIds(messageIdChunks, [], BATCHELOR_BATCH_SIZE);
       await asyncForEach(batchChunks, async (batchChunk) => {
-          let batchResult = await createBatchTrashRequest(batchChunk, access_token).catch((batchErr) => {
+          let batchResult = await createBatchTrashRequest(batchChunk, accessToken).catch((batchErr) => {
               logger.error(userId + ' - ' + batchErr);
           });
           logger.trace(userId + ' - Batch Trash Results: ' + JSON.stringify(batchResult));
@@ -210,7 +210,7 @@ function trashSender(actionsMsg) {
 async function unsubscribeSender(actionsMsg) {
   let actionsObj = actionsMsg.content;
   let userId = actionsObj.userId;
-  let access_token = actionsObj.access_token;
+  let accessToken = actionsObj.accessToken;
   let senderId = actionsObj.senderId;
   let unsubscribeEmail = actionsObj.unsubscribeEmail;
   let unsubscribeWeb = actionsObj.unsubscribeWeb;
@@ -222,7 +222,7 @@ async function unsubscribeSender(actionsMsg) {
     }
     metadata = cleanSender(unsubscribeEmail);    
 
-    httpSendMessageRequest(access_token, metadata.to, metadata.subject).then((response) => {
+    httpSendMessageRequest(accessToken, metadata.to, metadata.subject).then((response) => {
       logger.trace(userId + ' - Sent Unsubscribe Request: ' + JSON.stringify(metadata));
       unsubscribeSenderFromMongo(userId, senderId, (mongoErr, mongoResponse) => {
         if (mongoErr) logger.error(userId + ' - ' + mongoErr);
