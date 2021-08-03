@@ -1,6 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-const workdir = path.resolve(__dirname) + '/'
+const workdir = path.resolve(__dirname) + '/';
 const rabbitTop = fs.readFileSync(workdir + 'rabbit.topology.json');
 const rabbitTopology = JSON.parse(rabbitTop.toString());
 const logger = require('../loggers/log4js');
@@ -18,40 +18,40 @@ const RABBIT_PROTOCOL = process.env.RABBIT_PROTOCOL;
 
 const RABBIT_URL = process.env.RABBIT_URL;
 
-let rabbit_config;
+let rabbitConfig;
 
 if (RABBIT_URL) {
   logger.info('RABBIT_URL: ' + RABBIT_URL);
-  rabbit_config = {
-      url: RABBIT_URL,
-      ...rabbitTopology
-  }
+  rabbitConfig = {
+    url: RABBIT_URL,
+    ...rabbitTopology,
+  };
 } else if (RABBIT_HOSTNAME) {
-  rabbit_config = {
+  rabbitConfig = {
     connection: {
-        hostname: RABBIT_HOSTNAME,
-        port: RABBIT_PORT,
-        username: RABBIT_USERNAME,
-        password: RABBIT_PASSWORD,
-        protocol: RABBIT_PROTOCOL,
-        frameMax: RABBIT_FRAME_MAX,
-        vhost: RABBIT_VHOST,
-        heartbeat: RABBIT_HEARTBEAT,
+      hostname: RABBIT_HOSTNAME,
+      port: RABBIT_PORT,
+      username: RABBIT_USERNAME,
+      password: RABBIT_PASSWORD,
+      protocol: RABBIT_PROTOCOL,
+      frameMax: RABBIT_FRAME_MAX,
+      vhost: RABBIT_VHOST,
+      heartbeat: RABBIT_HEARTBEAT,
     },
-    ...rabbitTopology
-  }
+    ...rabbitTopology,
+  };
 }
 
-const rabbit_topology = {
+const userTopology = {
   channels: {
-    listen: 'actions.listen.1'
+    listen: 'actions.listen.1',
   },
   queues: {
-    actions: 'actions.do-actions.actions.q.1'
-  }
-}
+    actions: 'actions.do-actions.actions.q.1',
+  },
+};
 
 module.exports = {
-    rabbit_config,
-    rabbit_topology
-}
+  rabbitConfig,
+  userTopology,
+};

@@ -1,21 +1,21 @@
 const logger = require('./loggers/log4js');
 const mongoose = require('mongoose');
 const rabbit = require('zero-rabbit');
-const { 
-  rabbit_config,
-  rabbit_topology
+const {
+  rabbitConfig,
+  userTopology,
 } = require('./config/rabbit.config');
 
 const actionsController = require('./core/actions.controller');
 
-const { 
+const {
   MONGO_URI,
   ACTIONS_HEALTH_HOST,
-  ACTIONS_HEALTH_PORT
+  ACTIONS_HEALTH_PORT,
 } = require('./config/init.config');
 
 // Print out the value of all env vars
-let envVars = require('./config/init.config');
+const envVars = require('./config/init.config');
 Object.keys(envVars).forEach((envVar) => {
   logger.info(envVar + ': ' + envVars[envVar]);
 });
@@ -27,37 +27,48 @@ KubeHealthCheck.get('/healthz', (req, res, next) => {
   res.status(200).send();
 });
 
-mongoose.connect(MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true }, (err, db) => {
-  if (err) {
-    throw new Error('Error in mongoose.connect(): ' + err);
-  }
+mongoose.connect(
+    MONGO_URI,
+    {useNewUrlParser: true, useUnifiedTopology: true},
+    (err, db) => {
+      if (err) {
+        throw new Error('Error in mongoose.connect(): ' + err);
+      }
 
-  logger.info('Connected to MongoDB!');  
-  rabbit.connect(rabbit_config, (err, conn) => {
-    if (err) {
-      throw new Error('Error in rabbit.connect(): ' + err);
-    };
+      logger.info('Connected to MongoDB!');
+      rabbit.connect(rabbitConfig, (err, conn) => {
+        if (err) {
+          throw new Error('Error in rabbit.connect(): ' + err);
+        };
 
-    let server = KubeHealthCheck.listen(ACTIONS_HEALTH_PORT, ACTIONS_HEALTH_HOST);
-    processHandler(server);
-    logger.info(`Running health check on http://${ACTIONS_HEALTH_HOST}:${ACTIONS_HEALTH_PORT}`);
+        const server =
+          KubeHealthCheck.listen(ACTIONS_HEALTH_PORT, ACTIONS_HEALTH_HOST);
+        processHandler(server);
+        logger.info(`Running health check on http://${ACTIONS_HEALTH_HOST}:${ACTIONS_HEALTH_PORT}`);
 
-    logger.info('Connected to RabbitMQ!');
-    rabbit.setChannelPrefetch(rabbit_topology.channels.listen, 1);
+        logger.info('Connected to RabbitMQ!');
+        rabbit.setChannelPrefetch(userTopology.channels.listen, 1);
 
-    let actionsQueue = rabbit_topology.queues.actions;
-    rabbit.consume(rabbit_topology.channels.listen, actionsQueue, (actionsMsg) => {
-      let actionsObj = actionsMsg.content;
-      let userId = actionsObj.userId;
-      logger.trace(userId + ' - New actions message: ' + JSON.stringify(actionsObj));
-        actionsController(actionsMsg);
-    }, { noAck: false });
-
-  });
-});
+        const actionsQueue = userTopology.queues.actions;
+        rabbit.consume(
+            userTopology.channels.listen, actionsQueue,
+            (actionsMsg) => {
+              const actionsObj = actionsMsg.content;
+              const userId = actionsObj.userId;
+              logger.trace(
+                  userId + ' - Actions message: ' + JSON.stringify(actionsObj),
+              );
+              actionsController(actionsMsg);
+            }, {noAck: false});
+      });
+    },
+);
 
 
 // Graceful shutdown SIG handling
+/**
+ * @param  {ExpressJs} server
+ */
 function processHandler(server) {
   const signals = {
     'SIGHUP': 1,
@@ -82,10 +93,10 @@ const shutdown = (server, signal, value) => {
   rabbit.disconnect(() => {
     logger.info('Rabbit disconnected!');
     mongoose.disconnect((error) => {
-      logger.info('Mongo disconnected!')
+      logger.info('Mongo disconnected!');
     });
     server.close(() => {
       logger.info('Express health server closed!');
-    })
+    });
   });
 };

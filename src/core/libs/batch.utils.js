@@ -1,10 +1,10 @@
 const Batchelor = require('batchelor');
-const logger = require('../../loggers/log4js');
+// const logger = require('../../loggers/log4js');
 
 const {
-    GMAIL_BATCH_ENDPOINT,
-    GMAIL_BATCH_MODIFY_ENDPOINT
-  } = require('../../config/init.config');
+  GMAIL_BATCH_ENDPOINT,
+  GMAIL_BATCH_MODIFY_ENDPOINT,
+} = require('../../config/init.config');
 
 /**
  * An implementation of asyncForEach much like concatMap from rxjs.
@@ -14,28 +14,27 @@ const {
  * @return {void}              does not return, is used internally as above
  */
 async function asyncForEach(array, callback) {
-    for (let index = 0; index < array.length; index++) {
-      await callback(array[index], index, array);
-    }
+  for (let index = 0; index < array.length; index++) {
+    await callback(array[index], index, array);
   }
+}
 
 /**
- * Given an array, this function will return Array<Array<T>> where each
+ *  Given an array, this function will return Array<Array<T>> where each
  *  subArray is of length subarraySize except for the last array which will
  *  be of length (array.length % subarraySize). Given an array with length
  *  less than subarraySize a new array of length 1 Array<Array<T>> with an inner
  *  array of length same as the starting array is returned.
  *
- * Result should always start as the empty array [] but will become Array<Array<T>>
- *  as recursion happens.
+ *  Result should always start as the empty array [] but will become
+ *  Array<Array<T>> as recursion happens.
  *
  * @param  {Array<T>} array        The array to be split;
  * @param  {Array<T>} result       The result as it currently exists;
+ * @param {number} chunkSize
  * @return {Array<Array<T>>}       The result after the last subArray is added;
  */
-
 function chunkIds(array, result, chunkSize) {
-
   if (array.length <= chunkSize) {
     result = result.concat([array]);
     return result;
@@ -45,47 +44,45 @@ function chunkIds(array, result, chunkSize) {
   array = array.slice(chunkSize);
 
   return chunkIds(array, result, chunkSize);
-
 }
 
 
-/******************************************************************************
+/**
   GAPI BATCH REQUEST TO GET EACH THREAD
   https://developers.google.com/gmail/api/v1/reference/users/threads/get
   https://github.com/wapisasa/batchelor
-******************************************************************************/
+****************************************************************************/
 
 /**
  * Create a new Batchelor Batch Request from one of the subArrays of threadIds.
  *  creates the batch request with 'format=metadata'
  *
- * @param  {Array<string>} subArray     Array of threadIds
+ * @param  {Array<string>} batchChunk     Array of threadIds
  * @param  {string} accessToken        The users google accessToken
  * @return {Promise}                    The actual batch request to be executed
  */
-
 function createBatchTrashRequest(batchChunk, accessToken) {
-  var batch = new Batchelor({
+  const batch = new Batchelor({
     'uri': GMAIL_BATCH_ENDPOINT,
     'method': 'POST',
     'headers': {
       'Content-Type': 'multipart/mixed',
-      'Authorization': 'Bearer ' + accessToken
-    }
+      'Authorization': 'Bearer ' + accessToken,
+    },
   });
-  
+
   batchChunk.forEach((messageIdChunk) => {
     batch.add({
       'method': 'POST',
       'path': GMAIL_BATCH_MODIFY_ENDPOINT,
       'parameters': {
-        'Content-Type':'application/json',
+        'Content-Type': 'application/json',
         'body': {
-          "ids": messageIdChunk,
-          "addLabelIds": ['TRASH'],
-          "removeLabelIds": ['INBOX']
-        }
-      }
+          'ids': messageIdChunk,
+          'addLabelIds': ['TRASH'],
+          'removeLabelIds': ['INBOX'],
+        },
+      },
     });
   });
 
@@ -100,46 +97,52 @@ function createBatchTrashRequest(batchChunk, accessToken) {
   });
 }
 
-  function createBatchLabelRequest(batchChunk, accessToken, labelIds) {
-    var batch = new Batchelor({
-      'uri': GMAIL_BATCH_ENDPOINT,
+/**
+ * @param  {Array<string>} batchChunk
+ * @param  {string} accessToken
+ * @param  {Array<string>} labelIds
+ * @return {Promise}
+ */
+function createBatchLabelRequest(batchChunk, accessToken, labelIds) {
+  const batch = new Batchelor({
+    'uri': GMAIL_BATCH_ENDPOINT,
+    'method': 'POST',
+    'headers': {
+      'Content-Type': 'multipart/mixed',
+      'Authorization': 'Bearer ' + accessToken,
+    },
+  });
+
+  batchChunk.forEach((messageIdChunk) => {
+    batch.add({
       'method': 'POST',
-      'headers': {
-        'Content-Type': 'multipart/mixed',
-        'Authorization': 'Bearer ' + accessToken
+      'path': GMAIL_BATCH_MODIFY_ENDPOINT,
+      'parameters': {
+        'Content-Type': 'application/json',
+        'body': {
+          'ids': messageIdChunk,
+          'addLabelIds': labelIds,
+          'removeLabelIds': ['INBOX'],
+        },
+      },
+    });
+  });
+
+  return new Promise((resolve, reject) => {
+    batch.run((err, response) => {
+      if (err) {
+        reject(err);
+      } else {
+        resolve(response);
       }
     });
-    
-    batchChunk.forEach((messageIdChunk) => {
-      batch.add({
-        'method': 'POST',
-        'path': GMAIL_BATCH_MODIFY_ENDPOINT,
-        'parameters': {
-          'Content-Type':'application/json',
-          'body': {
-            "ids": messageIdChunk,
-            "addLabelIds": labelIds,
-            "removeLabelIds": ['INBOX']
-          }
-        }
-      });
-    });
-  
-    return new Promise((resolve, reject) => {
-      batch.run((err, response) => {
-        if (err) {
-          reject(err);
-        } else {
-          resolve(response);
-        }
-      });
-    });
-  }
+  });
+}
 
 
 module.exports = {
-    asyncForEach,
-    chunkIds,
-    createBatchTrashRequest,
-    createBatchLabelRequest
+  asyncForEach,
+  chunkIds,
+  createBatchTrashRequest,
+  createBatchLabelRequest,
 };
