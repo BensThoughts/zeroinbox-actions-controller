@@ -53,11 +53,8 @@ mongoose.connect(
         rabbit.consume(
             userTopology.channels.listen, actionsQueue,
             (actionsMsg) => {
-              const actionsObj = actionsMsg.content;
-              const userId = actionsObj.userId;
-              logger.trace(
-                  userId + ' - Actions message: ' + JSON.stringify(actionsObj),
-              );
+              const userId = actionsMsg.content.userId;
+              logger.addContext('userId', userId + ' - ');
               actionsController(actionsMsg);
             }, {noAck: false});
       });

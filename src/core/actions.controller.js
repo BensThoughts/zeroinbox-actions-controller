@@ -54,7 +54,7 @@ function actionsController(actionsMsg) {
       return;
 
     default:
-      logger.error(userId + ' - Action was not 1 of delete/label/unsubscribe');
+      logger.error('Action was not 1 of delete/label/unsubscribe');
       ackMessage(actionsMsg);
   }
 }
@@ -72,7 +72,7 @@ function labelSender(actionsMsg) {
 
   findSendersMessageIds(userId, senderId, (mongoErr, messageIds) => {
     if (mongoErr) {
-      logger.error(userId + ' - ' + mongoErr);
+      logger.error(mongoErr);
       ackMessage(actionsMsg);
     } else {
       httpGetLabelsRequest(accessToken).then( async (labelsResponse) => {
@@ -97,7 +97,6 @@ function labelSender(actionsMsg) {
             ).then((categoryLabelResponse) => {
               categoryLabelId = categoryLabelResponse.id;
               logger.trace(
-                  userId +
                   ' - Label Created Response: ' +
                   JSON.stringify(categoryLabelResponse));
             }).catch((httpErr) => {
@@ -121,11 +120,9 @@ function labelSender(actionsMsg) {
               userLabelName,
           ).then((userLabelResponse) => {
             userLabelId = userLabelResponse.id;
-            logger.trace(userId + ' - Label Created: ' + userLabelResponse);
+            logger.trace('Label Created: ' + userLabelResponse);
           }).catch((httpErr) => {
-            return logger.error(
-                userId + ' - Error: ' + JSON.stringify(httpErr),
-            );
+            return logger.error('Error: ' + JSON.stringify(httpErr));
           });
         } else {
           userLabelId = labelsResponse.labels[userLabelIndex].id;
@@ -152,33 +149,31 @@ function labelSender(actionsMsg) {
                 accessToken,
                 labelIds,
             ).catch((batchErr) => {
-              logger.error(userId + ' - ' + JSON.stringify(batchErr));
+              logger.error(JSON.stringify(batchErr));
             });
             const logResult = JSON.stringify(batchResult);
-            logger.trace(userId + ' - Batch Label Results: ' + logResult);
+            logger.trace('Batch Label Results: ' + logResult);
           });
 
           ackMessage(actionsMsg);
           deleteSender(userId, senderId, (mongoErr, res) => {
-            if (mongoErr) return logger.error(userId + ' - ' + mongoErr);
-            logger.trace(userId + ' - Sender deleted: ' + senderId);
+            if (mongoErr) return logger.error(mongoErr);
+            logger.trace('Sender deleted: ' + senderId);
           });
 
           deleteMessageIds(userId, messageIds, (mongoErr, res) => {
-            if (mongoErr) return logger.error(userId + ' - ' + mongoErr);
-            logger.trace(
-                userId + ' - Message Ids deleted: ' + messageIds.length,
-            );
+            if (mongoErr) return logger.error(mongoErr);
+            logger.trace('Message Ids deleted: ' + messageIds.length);
           });
         };
 
         startBatchProcess().catch((batchErr) => {
           ackMessage(actionsMsg);
-          logger.error(userId + ' - Error: ' + JSON.stringify(batchErr));
+          logger.error('Error: ' + JSON.stringify(batchErr));
         });
       }).catch((httpErr) => {
         ackMessage(actionsMsg);
-        logger.error(userId + ' - Error: ' + JSON.stringify(httpErr));
+        logger.error('Error: ' + JSON.stringify(httpErr));
       });
     }
   });
@@ -192,14 +187,14 @@ function labelSender(actionsMsg) {
  */
 function createFilters(userId, accessToken, labelIds, senderId) {
   findSenderAddress(userId, senderId, (mongoErr, senderAddress) => {
-    if (mongoErr) return logger.error(userId + ' - ' + mongoErr);
+    if (mongoErr) return logger.error(mongoErr);
     labelIds.forEach((labelId) => {
       httpCreateFilterRequest(accessToken, labelId, senderAddress)
           .then((response) => {
             const logResponse = JSON.stringify(response);
-            logger.trace(userId + ' - Filter created response: ' + logResponse);
+            logger.trace('Filter created response: ' + logResponse);
           }).catch((httpErr) => {
-            logger.error(userId + ' - ' + JSON.stringify(httpErr));
+            logger.error(JSON.stringify(httpErr));
           });
     });
   });
@@ -216,7 +211,7 @@ function trashSender(actionsMsg) {
   const senderId = actionsObj.senderId;
 
   findSendersMessageIds(userId, senderId, (mongoErr, messageIds) => {
-    if (mongoErr) return logger.error(userId + ' - ' + mongoError);
+    if (mongoErr) return logger.error(mongoError);
     const startBatchProcess = async () => {
       const messageIdChunks = chunkIds(messageIds, [], GMAIL_BATCH_MODIFY_SIZE);
       const batchChunks = chunkIds(messageIdChunks, [], BATCHELOR_BATCH_SIZE);
@@ -225,28 +220,28 @@ function trashSender(actionsMsg) {
             batchChunk,
             accessToken,
         ).catch((batchErr) => {
-          logger.error(userId + ' - ' + batchErr);
+          logger.error(batchErr);
         });
         const logResults = JSON.stringify(batchResult);
-        logger.trace(userId + ' - Batch Trash Results: ' + logResults);
+        logger.trace('Batch Trash Results: ' + logResults);
       });
 
       ackMessage(actionsMsg);
 
       deleteSender(userId, senderId, (mongoErr, res) => {
-        if (mongoErr) return logger.error(userId + ' - ' + mongoErr);
-        logger.trace(userId + ' - Sender deleted: ' + senderId);
+        if (mongoErr) return logger.error(mongoErr);
+        logger.trace('Sender deleted: ' + senderId);
       });
 
       deleteMessageIds(userId, messageIds, (mongoErr, res) => {
-        if (mongoErr) return logger.error(userId + ' - ' + mongoErr);
-        logger.trace(userId + ' - Message Ids deleted: ' + messageIds.length);
+        if (mongoErr) return logger.error(mongoErr);
+        logger.trace('Message Ids deleted: ' + messageIds.length);
       });
     };
 
     startBatchProcess().catch((batchError) => {
       ackMessage(actionsMsg);
-      logger.error(userId + ' - ' + batchError);
+      logger.error(batchError);
     });
   });
 }
@@ -272,24 +267,23 @@ async function unsubscribeSender(actionsMsg) {
     httpSendMessageRequest(accessToken, metadata.to, metadata.subject)
         .then((response) => {
           const logMetaData = JSON.stringify(metadata);
-          logger.trace(userId + ' - Sent Unsubscribe Request: ' + logMetaData);
+          logger.trace('Sent Unsubscribe Request: ' + logMetaData);
           unsubscribeSenderFromMongo(
               userId,
               senderId,
               (mongoErr, mongoResponse) => {
-                if (mongoErr) logger.error(userId + ' - ' + mongoErr);
-                logger.trace(
-                    userId + ' - Unsubscribe Sender From Mongo: ' + senderId);
+                if (mongoErr) logger.error(mongoErr);
+                logger.trace('Unsubscribe Sender From Mongo: ' + senderId);
               });
           ackMessage(actionsMsg);
         }).catch((httpError) => {
-          logger.error(userId + ' - ' + JSON.stringify(httpError));
+          logger.error(JSON.stringify(httpError));
           ackMessage(actionsMsg);
         });
   } else {
     unsubscribeSenderFromMongo(userId, senderId, (mongoErr, response) => {
-      if (mongoErr) return logger.error(userId + ' - ' + mongoErr);
-      logger.trace(userId + ' - Unsubscribe Sender From Mongo: ' + senderId);
+      if (mongoErr) return logger.error(mongoErr);
+      logger.trace('Unsubscribe Sender From Mongo: ' + senderId);
     });
     ackMessage(actionsMsg);
   }
@@ -330,8 +324,7 @@ function cleanSender(unsubscribeEmail) {
  * @param  {RabbitMsg} actionsMsg
  */
 function ackMessage(actionsMsg) {
-  const userId = actionsMsg.content.userId;
-  logger.trace(userId + ' - Actions Message Acked!');
+  logger.trace('Actions Message Acked!');
   rabbit.ack(userTopology.channels.listen, actionsMsg);
 }
 
