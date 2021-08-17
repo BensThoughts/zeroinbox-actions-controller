@@ -96,9 +96,8 @@ function labelSender(actionsMsg) {
                 categoryLabelName,
             ).then((categoryLabelResponse) => {
               categoryLabelId = categoryLabelResponse.id;
-              logger.trace(
-                  ' - Label Created Response: ' +
-                  JSON.stringify(categoryLabelResponse));
+              logger.trace('Label Created Response: ' +
+                JSON.stringify(categoryLabelResponse));
             }).catch((httpErr) => {
               return logger
                   .error(userId + ' - Error: ' + JSON.stringify(httpErr));
