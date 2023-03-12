@@ -10,7 +10,7 @@ const actionsController = require('./core/actions.controller');
 
 const {
   MONGO_URI,
-  ACTIONS_HEALTH_HOST,
+  // ACTIONS_HEALTH_HOST,
   ACTIONS_HEALTH_PORT,
 } = require('./config/init.config');
 
@@ -22,8 +22,8 @@ Object.keys(envVars).forEach((envVar) => {
 
 
 const express = require('express');
-const KubeHealthCheck = express();
-KubeHealthCheck.get('/healthz', (req, res, next) => {
+const kubeHealthCheck = express();
+kubeHealthCheck.get('/healthcheck', (req, res, next) => {
   res.status(200).send();
 });
 
@@ -42,9 +42,13 @@ mongoose.connect(
         };
 
         const server =
-          KubeHealthCheck.listen(ACTIONS_HEALTH_PORT, ACTIONS_HEALTH_HOST);
+        kubeHealthCheck
+            .listen(ACTIONS_HEALTH_PORT, () => {
+              logger.info('Express server started for health checks');
+            });
+        const address = server.address();
+        logger.info(address);
         processHandler(server);
-        logger.info(`Running health check on http://${ACTIONS_HEALTH_HOST}:${ACTIONS_HEALTH_PORT}`);
 
         logger.info('Connected to RabbitMQ!');
         rabbit.setChannelPrefetch(userTopology.channels.listen, 1);
@@ -55,6 +59,7 @@ mongoose.connect(
             (actionsMsg) => {
               const userId = actionsMsg.content.userId;
               logger.addContext('userId', userId + ' - ');
+              logger.info(`incoming message ${JSON.stringify(actionsMsg.content)}`)
               actionsController(actionsMsg);
             }, {noAck: false});
       });
