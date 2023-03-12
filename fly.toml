@@ -1,0 +1,57 @@
+# fly.toml file generated for zeroinbox-actions-controller on 2023-03-12T01:04:14-07:00
+
+app = "zeroinbox-actions-controller"
+kill_signal = "SIGINT"
+kill_timeout = 5
+processes = []
+
+[env]  
+  ACTIONS_HEALTH_PORT = 8080
+  GMAIL_BATCH_ENDPOINT = "https://www.googleapis.com/batch/gmail/v1"
+  GMAIL_BATCH_MODIFY_SIZE = 1000
+  GMAIL_BATCH_MODIFY_ENDPOINT = "https://gmail.googleapis.com/gmail/v1/users/me/messages/batchModify"
+  BATCHELOR_BATCH_SIZE = 1
+  GMAIL_LABEL_ENDPOINT = "https://www.googleapis.com/gmail/v1/users/me/labels"
+  GMAIL_MESSAGE_SEND_ENDPOINT = "https://www.googleapis.com/upload/gmail/v1/users/me/messages/send"
+  GMAIL_FILTER_ENDPOINT = "https://www.googleapis.com/gmail/v1/users/me/settings/filters"
+  GAPI_DELAY_MULTIPLIER = 2
+  GAPI_INIT_RETRY_DELAY = 500
+  GAPI_MAX_RETRIES = 5
+  NODE_ENV = "production"
+
+[experimental]
+  auto_rollback = true
+
+[[services]]
+  internal_port = 8080
+  processes = ["app"]
+  protocol = "tcp"
+  script_checks = []
+  [services.concurrency]
+    hard_limit = 25
+    soft_limit = 20
+    type = "connections"
+
+  [[services.http_checks]]
+    grace_period = "5s"
+    interval = "10s"
+    method = "get"
+    path = "/healthcheck"
+    protocol = "http"
+    timeout = "2s"
+    tls_skip_verify = false
+
+  [[services.ports]]
+    force_https = true
+    handlers = ["http"]
+    port = 80
+
+  [[services.ports]]
+    handlers = ["tls", "http"]
+    port = 443
+
+  [[services.tcp_checks]]
+    grace_period = "1s"
+    interval = "15s"
+    restart_limit = 0
+    timeout = "2s"
