@@ -77,7 +77,7 @@ function labelSender(actionsMsg) {
     } else {
       httpGetLabelsRequest(accessToken).then( async (labelsResponse) => {
         const categoryLabelName = actionsObj.category;
-        let categoryLabelId = '';
+        // let categoryLabelId = ''; // !removed to avoid creating 2 filters
         let userLabelName = actionsObj.labelName;
         let userLabelId = '';
         let labelIds = [];
@@ -96,17 +96,20 @@ function labelSender(actionsMsg) {
                 categoryLabelName,
             ).then((categoryLabelResponse) => {
               categoryLabelId = categoryLabelResponse.id;
-              logger.trace('Label Created Response: ' +
+              logger.trace('Label Created: ' +
                 JSON.stringify(categoryLabelResponse));
             }).catch((httpErr) => {
               return logger
                   .error(userId + ' - Error: ' + JSON.stringify(httpErr));
             });
-          } else {
-            categoryLabelId = labelsResponse.labels[categoryLabelIndex].id;
           }
 
-          labelIds = labelIds.concat(categoryLabelId);
+          // !section removed to avoid creating 2 filters
+          // else {
+          //   categoryLabelId = labelsResponse.labels[categoryLabelIndex].id;
+          // }
+
+          // labelIds = labelIds.concat(categoryLabelId);
         }
 
         const userLabelIndex = labelsResponse.labels.findIndex((label) => {
@@ -119,7 +122,7 @@ function labelSender(actionsMsg) {
               userLabelName,
           ).then((userLabelResponse) => {
             userLabelId = userLabelResponse.id;
-            logger.trace('Label Created: ' + userLabelResponse);
+            logger.trace('Label Created: ' + JSON.stringify(userLabelResponse));
           }).catch((httpErr) => {
             return logger.error('Error: ' + JSON.stringify(httpErr));
           });
