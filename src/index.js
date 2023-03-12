@@ -59,7 +59,9 @@ mongoose.connect(
             (actionsMsg) => {
               const userId = actionsMsg.content.userId;
               logger.addContext('userId', userId + ' - ');
-              logger.info(`incoming message ${JSON.stringify(actionsMsg.content)}`)
+              logger.info(
+                  `incoming message ${JSON.stringify(actionsMsg.content)}`,
+              );
               actionsController(actionsMsg);
             }, {noAck: false});
       });
